@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Neighborhood Map</title>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
+  <script src="https://js.arcgis.com/4.30/"></script>
+
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+    #titleBar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.92);
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    }
+    #viewDiv { padding-top: 0; }
+  </style>
+</head>
+<body>
+  <div id="titleBar">Neighborhood Map</div>
+  <div id="viewDiv"></div>
+
+  <script>
+    require([
+      "esri/config",
+      "esri/WebMap",
+      "esri/views/MapView",
+      "esri/widgets/LayerList",
+      "esri/widgets/Legend",
+      "esri/widgets/Expand",
+      "esri/widgets/Search"
+    ], function (esriConfig, WebMap, MapView, LayerList, Legend, Expand, Search) {
+
+      esriConfig.portalUrl = "https://mapamanda.maps.arcgis.com";
+
+      const webmap = new WebMap({
+        portalItem: {
+          id: "ea08d6ba993c43d0bb63b744a70819f4"
+        }
+      });
+
+      const view = new MapView({
+        container: "viewDiv",
+        map: webmap,
+        padding: { top: 45 }
+      });
+
+      view.ui.add(new Search({ view: view }), "top-right");
+
+      view.ui.add(
+        new Expand({
+          view: view,
+          content: new LayerList({ view: view }),
+          expanded: true,
+          expandIcon: "layers"
+        }),
+        "top-left"
+      );
+
+      view.ui.add(
+        new Expand({
+          view: view,
+          content: new Legend({ view: view }),
+          expandIcon: "legend"
+        }),
+        "bottom-left"
+      );
+    });
+  </script>
+</body>
+</html>
