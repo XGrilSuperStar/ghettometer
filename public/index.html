@@ -12,6 +12,8 @@
   body { font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; color: var(--txt); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 8px 30px rgba(0,0,0,.45); backdrop-filter: blur(6px); }
   /* darken the map tiles only, dots stay bright */
+  #map.sat .leaflet-tile-pane { filter: brightness(.9); }
+  #satBtn { }
   .leaflet-tile-pane { filter: invert(1) hue-rotate(200deg) brightness(.78) contrast(.92) saturate(.7); }
   .leaflet-container { background: #0e1438; }
   .leaflet-bar a, .leaflet-bar a:hover { background: var(--card); color: var(--txt); border-bottom: 1px solid var(--line); }
@@ -73,6 +75,7 @@
   <input id="q" placeholder="Search address or city..." />
   <button id="go">Go</button>
   <select id="mode" title="What the dot colors show"></select>
+  <button id="satBtn">Satellite</button>
   <button id="layersBtn">Layers</button>
 </div>
 <div id="msg"></div>
@@ -244,6 +247,15 @@
   L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}", {
     maxNativeZoom: 16, maxZoom: 18, attribution: "Map: USGS The National Map"
   }).addTo(map);
+  var sat = L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}", {
+    maxNativeZoom: 16, maxZoom: 18, attribution: "Imagery: USGS The National Map"
+  });
+  document.getElementById("satBtn").onclick = function () {
+    var on = !map.hasLayer(sat);
+    if (on) { sat.addTo(map); sat.bringToFront(); } else map.removeLayer(sat);
+    document.getElementById("map").classList.toggle("sat", on);
+    this.textContent = on ? "Map" : "Satellite";
+  };
 
   var Dots = L.Layer.extend({
     onAdd: function (m) {
