@@ -33,4 +33,4 @@ http.createServer((req, res) => {
     headers["Content-Length"] = st.size;
     res.writeHead(200, headers); fs.createReadStream(file).pipe(res);
   });
-}).listen(PORT, "0.0.0.0", () => console.log("Gettometer running on " + PORT));
+}).listen(PORT, "0.0.0.0", () => console.log("Ghettometer running on " + PORT));
