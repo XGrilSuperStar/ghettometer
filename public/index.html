@@ -249,7 +249,8 @@
     var p = document.getElementById("panel"); p.style.display = p.style.display === "none" ? "block" : "none";
     document.body.classList.toggle("panelopen", p.style.display !== "none");
   };
-  if (window.innerWidth <= 700) document.getElementById("panel").style.display = "none";
+  document.getElementById("panel").style.display = "block";
+  document.body.classList.add("panelopen");
 
   var sel = document.getElementById("mode");
   var o = document.createElement("option"); o.value = "score"; o.textContent = "Show: overall score"; sel.appendChild(o);
@@ -275,7 +276,7 @@
   }
 
   // ---- map
-  var map = L.map("map", { preferCanvas: true, attributionControl: false }).setView([34.06, -117.18], 11);
+  var map = L.map("map", { preferCanvas: true, attributionControl: false }).setView([39.5, -98.35], 4);
   L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}", {
     maxNativeZoom: 16, maxZoom: 18, attribution: "Map: USGS The National Map"
   }).addTo(map);
@@ -320,7 +321,7 @@
   var dots = new Dots(); dots.addTo(map);
   var _dd = dots._draw; dots._draw = function () { _dd.apply(this, arguments); if (window.__places3d) window.__places3d(); };
   function anyPlaces() { for (var k in mapOn) if (mapOn[k]) return true; return false; }
-  var MINZ = 5;
+  var MINZ = 4;
   var Pts = L.Layer.extend({
     onAdd: function (m) {
       this._map = m; this._canvas = L.DomUtil.create("canvas", "leaflet-zoom-hide");
