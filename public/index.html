@@ -287,7 +287,7 @@
   });
   var dots = new Dots(); dots.addTo(map);
   function anyPlaces() { for (var k in mapOn) if (mapOn[k]) return true; return false; }
-  var MINZ = 8;
+  var MINZ = 5;
   var Pts = L.Layer.extend({
     onAdd: function (m) {
       this._map = m; this._canvas = L.DomUtil.create("canvas", "leaflet-zoom-hide");
@@ -306,9 +306,9 @@
       hint.style.display = "none";
       var ctx = this._canvas.getContext("2d"), b = m.getBounds().pad(0.03);
       var s = b.getSouth() * 1e4, n = b.getNorth() * 1e4, w = b.getWest() * 1e4, e = b.getEast() * 1e4;
-      var r = z < 10 ? 2.4 : z < 13 ? 3.6 : z < 15 ? 5.5 : 8;
+      var r = z < 8 ? 1.8 : z < 10 ? 2.4 : z < 13 ? 3.6 : z < 15 ? 5.5 : 8;
       ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.65)";
-      PLACE_KEYS.forEach(function (k) {
+      ["parks","grocery","transit","fast_food","public_housing","cash_loans","dispensaries","strip_bars"].forEach(function (k) {
         if (!mapOn[k] || !window.PTS || !window.PTS[k]) return;
         var a = window.PTS[k], lo = 0, hi = a.length / 2;
         while (lo < hi) { var mid = (lo + hi) >> 1; if (a[2 * mid] < s) lo = mid + 1; else hi = mid; }
@@ -316,7 +316,7 @@
         for (var i = lo; i < a.length / 2 && a[2 * i] <= n; i++) {
           var lng = a[2 * i + 1]; if (lng < w || lng > e) continue;
           var p = m.latLngToContainerPoint([a[2 * i] / 1e4, lng / 1e4]);
-          ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill(); ctx.stroke();
+          ctx.beginPath(); ctx.arc(p.x, p.y, (k === "strip_bars" || k === "dispensaries") ? r + (z < 10 ? 0.6 : 1.5) : r, 0, 6.2832); ctx.fill(); if (z >= 10) ctx.stroke();
         }
       });
     }
