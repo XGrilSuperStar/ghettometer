@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Gettometer</title>
+<link rel="stylesheet" href="maplibre/maplibre-gl.css">
 <link rel="stylesheet" href="leaflet/leaflet.css" />
 <script src="leaflet/leaflet.js"></script>
 <style>
@@ -19,6 +20,7 @@
   .leaflet-bar a, .leaflet-bar a:hover { background: var(--card); color: var(--txt); border-bottom: 1px solid var(--line); }
   .leaflet-control-attribution { background: rgba(11,16,48,.75) !important; color: var(--mut) !important; }
   .leaflet-control-attribution a { color: var(--acc2) !important; }
+  #map3d { position: absolute; inset: 0; display: none; z-index: 400; }
   #bar { position: absolute; z-index: 1000; top: 12px; left: 56px; right: 12px; display: flex; gap: 8px; align-items: center; padding: 10px 14px; }
   #bar b { font-size: 20px; white-space: nowrap; letter-spacing: .3px; }
   #bar b i { font-style: normal; background: linear-gradient(90deg, var(--acc2), var(--acc)); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -76,6 +78,7 @@
   <button id="go">Go</button>
   <select id="mode" title="What the dot colors show"></select>
   <button id="satBtn">Satellite</button>
+  <button id="d3Btn">3D</button>
   <button id="layersBtn">Layers</button>
 </div>
 <div id="msg"></div>
@@ -127,6 +130,7 @@
 </div>
 <div id="zoomhint" class="card"></div>
 <div id="map"></div>
+<div id="map3d"></div>
 
 <script src="meter_data.js"></script>
 <script>
@@ -305,6 +309,7 @@
     onRemove: function (m) { L.DomUtil.remove(this._canvas); m.off("moveend zoomend resize", this._draw, this); },
     _draw: function () {
       if (!this._map) return;
+      if (window.__places3d) window.__places3d();
       var m = this._map, size = m.getSize(), tl = m.containerPointToLayerPoint([0, 0]);
       L.DomUtil.setPosition(this._canvas, tl); this._canvas.width = size.x; this._canvas.height = size.y;
       var hint = document.getElementById("zoomhint"), z = m.getZoom();
@@ -414,6 +419,59 @@
   document.getElementById("go").addEventListener("click", search);
   document.getElementById("q").addEventListener("keydown", function (e) { if (e.key === "Enter") search(); });
 
+
+  // ---- 3D view (MapLibre + free OpenFreeMap buildings)
+  (function () {
+    var m3 = null, on3 = false, styleSat = false, btn = document.getElementById("d3Btn"), el3 = document.getElementById("map3d");
+    var KEYS3 = ["parks", "grocery", "transit", "fast_food", "public_housing", "cash_loans", "dispensaries", "strip_bars"];
+    function loadScript(src, cb) { var sc = document.createElement("script"); sc.src = src; sc.onload = cb; sc.onerror = function () { var mm = document.getElementById("msg"); mm.style.display = "block"; mm.textContent = "Could not load the 3D view."; }; document.head.appendChild(sc); }
+    function places() {
+      if (!m3) return;
+      var b = m3.getBounds(), s = b.getSouth() * 1e4, n = b.getNorth() * 1e4, w = b.getWest() * 1e4, e = b.getEast() * 1e4, feats = [];
+      if (m3.getZoom() >= 10.5) KEYS3.forEach(function (k) {
+        if (!mapOn[k] || !window.PTS || !window.PTS[k]) return;
+        var a = window.PTS[k], lo = 0, hi = a.length / 2;
+        while (lo < hi) { var mid = (lo + hi) >> 1; if (a[2 * mid] < s) lo = mid + 1; else hi = mid; }
+        for (var i = lo; i < a.length / 2 && a[2 * i] <= n && feats.length < 40000; i++) {
+          var lng = a[2 * i + 1]; if (lng < w || lng > e) continue;
+          feats.push({ type: "Feature", properties: { c: LCOL[k], big: (k === "strip_bars" || k === "dispensaries") ? 1 : 0 }, geometry: { type: "Point", coordinates: [lng / 1e4, a[2 * i] / 1e4] } });
+        }
+      });
+      var src = m3.getSource("pl"); if (src) src.setData({ type: "FeatureCollection", features: feats });
+    }
+    function init() {
+      fetch("https://tiles.openfreemap.org/styles/liberty").then(function (r) { return r.json(); }).then(function (style) {
+        style.sources.sat = { type: "raster", tileSize: 256, maxzoom: 16, tiles: ["https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}"], attribution: "Imagery: USGS" };
+        style.layers.splice(1, 0, { id: "satl", type: "raster", source: "sat", layout: { visibility: "none" } });
+        var c = map.getCenter();
+        m3 = new maplibregl.Map({ container: "map3d", style: style, center: [c.lng, c.lat], zoom: Math.max(map.getZoom(), 15.5), pitch: 60, bearing: -20, maxPitch: 80 });
+        m3.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
+        m3.on("load", function () {
+          m3.addSource("pl", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+          m3.addLayer({ id: "pl", type: "circle", source: "pl", paint: { "circle-color": ["get", "c"], "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["+", 2, ["*", 1.5, ["get", "big"]]], 18, ["+", 8, ["*", 3, ["get", "big"]]]], "circle-stroke-color": "rgba(0,0,0,.7)", "circle-stroke-width": 1, "circle-pitch-alignment": "map" } });
+          m3.on("moveend", places); places();
+        });
+        m3.on("click", function (e) { dropPin(L.latLng(e.lngLat.lat, e.lngLat.lng)); });
+      });
+    }
+    var sbtn = document.getElementById("satBtn"), oldSat = sbtn.onclick;
+    sbtn.onclick = function () {
+      if (!on3) return oldSat.call(this);
+      styleSat = !styleSat; m3.setLayoutProperty("satl", "visibility", styleSat ? "visible" : "none"); this.textContent = styleSat ? "Map" : "Satellite";
+    };
+    btn.onclick = function () {
+      on3 = !on3;
+      if (on3) {
+        document.getElementById("map").style.visibility = "hidden"; el3.style.display = "block"; btn.textContent = "2D";
+        if (!m3) { if (window.maplibregl) init(); else loadScript("maplibre/maplibre-gl.js", init); }
+        else { var c = map.getCenter(); m3.jumpTo({ center: [c.lng, c.lat] }); m3.resize(); places(); }
+      } else {
+        var c3 = m3.getCenter(); map.setView([c3.lat, c3.lng], Math.min(Math.max(Math.round(m3.getZoom()), 5), 18));
+        document.getElementById("map").style.visibility = ""; el3.style.display = "none"; btn.textContent = "3D";
+      }
+    };
+    window.__places3d = places;
+  })();
   recompute();
 })();
 </script>
