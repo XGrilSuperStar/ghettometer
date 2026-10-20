@@ -79,7 +79,7 @@
 
 <div id="panel" class="card">
   <h3>Layers</h3>
-  <label class="row" style="border-top:0;padding-top:2px"><input type="checkbox" id="showScore" checked><div class="t"><b>Score dots</b><span>One dot per neighborhood, green (nice) to red (worse)</span></div></label>
+  <label class="row" style="border-top:0;padding-top:2px"><input type="checkbox" id="showScore"><div class="t"><b>Score dots</b><span>One dot per neighborhood, green (nice) to red (worse)</span></div></label>
   <div class="sub" style="margin-top:6px"><b>Map</b> shows the real places in that layer's color (zoom in). <b>Score</b> counts it in the overall score.</div>
   <div class="btns"><button id="allOn">All score on</button><button id="allOff">All score off</button><button id="noPlaces">Hide places</button></div>
   <div id="rows"></div>
@@ -91,7 +91,7 @@
 
 <div id="meter" class="card">
   <h3>The Gettometer</h3>
-  <label class="tg" style="justify-content:center;margin:4px 0 0;font-size:12px"><input type="checkbox" id="showScore2" checked> Show green-to-red score on map</label>
+  <label class="tg" style="justify-content:center;margin:4px 0 0;font-size:12px"><input type="checkbox" id="showScore2"> Show green-to-red score on map</label>
   <svg id="gauge" viewBox="0 0 260 260">
     <defs>
       <linearGradient id="bezel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9edf5"/><stop offset=".35" stop-color="#8b93a8"/><stop offset=".6" stop-color="#f4f6fb"/><stop offset="1" stop-color="#6b7388"/></linearGradient>
@@ -174,13 +174,13 @@
   var active = {}; KEYS.forEach(function (k) { active[k] = true; });
   var rowsEl = document.getElementById("rows");
   var PLACE_KEYS = ["fast_food", "strip_bars", "dispensaries", "cash_loans", "public_housing", "grocery", "parks", "transit"];
-  var mapOn = {};
+  var mapOn = {}; ["fast_food","strip_bars","dispensaries","cash_loans","public_housing","grocery","parks","transit"].forEach(function(k){mapOn[k]=true;});
   KEYS.forEach(function (k) {
     var inf = INFO[k], r = document.createElement("div"); r.className = "row";
     var hasPlaces = PLACE_KEYS.indexOf(k) >= 0;
     r.innerHTML = '<div class="ic" style="color:' + LCOL[k] + ';background:' + LCOL[k] + '26">' + ICON[k] + '</div><div class="t"><b>' + inf[0] +
       '</b><span>' + inf[1] + '</span></div>' +
-      '<div class="tgs">' + (hasPlaces ? '<label class="tg"><input type="checkbox" data-map="' + k + '"> Map</label>' : '') +
+      '<div class="tgs">' + (hasPlaces ? '<label class="tg"><input type="checkbox" data-map="' + k + '" checked> Map</label>' : '') +
       '<label class="tg"><input type="checkbox" checked data-k="' + k + '"> Score</label></div>';
     rowsEl.appendChild(r);
   });
@@ -194,7 +194,7 @@
     Array.prototype.forEach.call(rowsEl.querySelectorAll("input[data-k]"), function (i) { i.checked = v; });
     recompute();
   }
-  var showScore = true;
+  var showScore = false;
   function setScoreDots(v) {
     showScore = v; document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
   }
@@ -310,6 +310,7 @@
     }
   });
   var pts = new Pts(); pts.addTo(map);
+  Object.keys(mapOn).forEach(function (k) { if (mapOn[k]) loadPts(k, function () { pts._draw(); }); });
   sel.addEventListener("change", function () {
     mode = sel.value; dots._draw();
     var g = document.getElementById("grad"), l = document.getElementById("lgL"), r = document.getElementById("lgR");
