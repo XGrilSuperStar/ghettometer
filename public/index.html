@@ -146,7 +146,7 @@
 <div id="map"></div>
 <div id="map3d"></div>
 
-<script src="meter_data.js"></script>
+<script src="meter_data.js?v=3"></script>
 <script>
 (function () {
   if (!window.METER) {
@@ -234,7 +234,7 @@
   };
   function loadPts(k, cb) {
     if (window.PTS && window.PTS[k]) return cb();
-    var sc = document.createElement("script"); sc.src = "points/" + k + ".js"; sc.onload = cb;
+    var sc = document.createElement("script"); sc.src = "points/" + k + ".js?v=3"; sc.onload = cb;
     sc.onerror = function () { var m = document.getElementById("msg"); m.style.display = "block"; m.textContent = "Could not load places for " + INFO[k][0] + "."; };
     document.head.appendChild(sc);
   }
