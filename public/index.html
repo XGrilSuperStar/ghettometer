@@ -138,7 +138,7 @@
   <div id="val">--</div>
   <div id="word">Click the map to drop a pin</div>
   <div id="where"></div>
-  <div class="sub" style="margin:2px 0">Longer bar = worse for that item</div>
+  <div class="sub" style="margin:2px 0">Counts are within 0.5 mile of the pin (circle). Income, degrees and home values are for the neighborhood.</div>
   <div class="bars" id="bars"></div>
   <div class="btns" style="justify-content:center"><button id="clear">Clear pin</button></div>
 </div>
@@ -338,7 +338,7 @@
       var ctx = this._canvas.getContext("2d"), b = m.getBounds().pad(0.03);
       var s = b.getSouth() * 1e4, n = b.getNorth() * 1e4, w = b.getWest() * 1e4, e = b.getEast() * 1e4;
       var r = z < 8 ? 1.8 : z < 10 ? 2.4 : z < 13 ? 3.6 : z < 15 ? 5.5 : 8;
-      ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.65)";
+      ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.65)"; ctx.globalAlpha = 1; var pcos = pinLL ? Math.cos(pinLL.lat * Math.PI / 180) : 1;
       ["parks","grocery","transit","fast_food","public_housing","cash_loans","dispensaries","strip_bars"].forEach(function (k) {
         if (!mapOn[k] || !window.PTS || !window.PTS[k]) return;
         var a = window.PTS[k], lo = 0, hi = a.length / 2;
@@ -347,6 +347,7 @@
         for (var i = lo; i < a.length / 2 && a[2 * i] <= n; i++) {
           var lng = a[2 * i + 1]; if (lng < w || lng > e) continue;
           var p = m.latLngToContainerPoint([a[2 * i] / 1e4, lng / 1e4]);
+          if (pinLL) { var ey = (a[2 * i] / 1e4 - pinLL.lat) * 111320, ex = (lng / 1e4 - pinLL.lng) * 111320 * pcos; ctx.globalAlpha = (ex * ex + ey * ey <= RAD * RAD) ? 1 : 0.22; }
           ctx.beginPath(); ctx.arc(p.x, p.y, (k === "strip_bars" || k === "dispensaries") ? r + (z < 10 ? 0.6 : 1.5) : r, 0, 6.2832); ctx.fill(); if (z >= 10) ctx.stroke();
         }
       });
@@ -400,8 +401,24 @@
     var inf = INFO[k];
     if (k === "income") return d[22] === null ? "n/a" : "$" + d[22].toLocaleString();
     if (k === "education") return d[23] === null ? "n/a" : Math.round(d[23]) + "% have degree";
+    if (pinCounts && pinCounts[k] !== undefined) return pinCounts[k] === null ? "..." : pinCounts[k] + " in 0.5 mi";
     if (k === "home_growth") return d[25] === null ? "n/a" : (d[25] > 0 ? "+" : "") + d[25] + "% in 3 yrs";
     return String(d[inf[3]]);
+  }
+  var RAD = 805, ring = null, pinCounts = null;
+  function countsAround(ll) {
+    var out = {}, cl = Math.cos(ll.lat * Math.PI / 180), dl = RAD / 111320, dn = RAD / (111320 * cl);
+    PLACE_KEYS.forEach(function (k) {
+      var a = window.PTS && window.PTS[k]; if (!a) { out[k] = null; return; }
+      var lo = 0, hi = a.length / 2, s = (ll.lat - dl) * 1e4, n = (ll.lat + dl) * 1e4, c = 0;
+      while (lo < hi) { var mid = (lo + hi) >> 1; if (a[2 * mid] < s) lo = mid + 1; else hi = mid; }
+      for (var i = lo; i < a.length / 2 && a[2 * i] <= n; i++) {
+        var dy = (a[2 * i] / 1e4 - ll.lat) * 111320, dx = (a[2 * i + 1] / 1e4 - ll.lng) * 111320 * cl;
+        if (dx * dx + dy * dy <= RAD * RAD) c++;
+      }
+      out[k] = c;
+    });
+    return out;
   }
   function updatePin() {
     var valEl = document.getElementById("val"), wordEl = document.getElementById("word"),
@@ -420,14 +437,17 @@
     barsEl.innerHTML = html;
   }
   function dropPin(ll) {
-    pinIdx = nearest(ll.lat, ll.lng); pinLL = ll;
+    pinIdx = nearest(ll.lat, ll.lng); pinLL = ll; pinCounts = countsAround(ll);
+    if (!ring) ring = L.circle(ll, { radius: RAD, color: "#ffffff", weight: 2, dashArray: "6 5", fillColor: "#7c6cff", fillOpacity: 0.13, interactive: false }).addTo(map); else ring.setLatLng(ll);
+    if (window.__ring3d) window.__ring3d(ll);
+    pts._draw();
     if (!pin) pin = L.marker(ll, { icon: L.divIcon({ className: "", html: '<div class="pin"></div>', iconSize: [22, 22], iconAnchor: [4, 24] }) }).addTo(map);
     else pin.setLatLng(ll);
     if (pinIdx < 0) { document.getElementById("word").textContent = "No data here"; document.getElementById("val").textContent = "--"; document.getElementById("bars").innerHTML = ""; return; }
     updatePin();
   }
   map.on("click", function (e) { dropPin(e.latlng); });
-  document.getElementById("clear").onclick = function () { if (pin) { map.removeLayer(pin); pin = null; } pinIdx = -1; updatePin(); };
+  document.getElementById("clear").onclick = function () { if (pin) { map.removeLayer(pin); pin = null; } if (ring) { map.removeLayer(ring); ring = null; } pinLL = null; pinCounts = null; if (window.__ring3d) window.__ring3d(null); pts._draw(); pinIdx = -1; updatePin(); };
 
   function search() {
     var q = document.getElementById("q").value.trim(); if (!q) return;
@@ -474,6 +494,10 @@
         m3.on("load", function () {
           m3.addSource("sc", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m3.addLayer({ id: "sc", type: "circle", source: "sc", paint: { "circle-color": ["get", "c"], "circle-opacity": 0.35, "circle-blur": 0.5, "circle-radius": ["interpolate", ["exponential", 2], ["zoom"], 8, 2, 18, 2000], "circle-pitch-alignment": "map" } });
+          m3.addSource("ring", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+          m3.addLayer({ id: "ring-f", type: "fill", source: "ring", paint: { "fill-color": "#7c6cff", "fill-opacity": 0.14 } });
+          m3.addLayer({ id: "ring-l", type: "line", source: "ring", paint: { "line-color": "#ffffff", "line-width": 2.5, "line-dasharray": [2, 1.5] } });
+          if (pinLL) window.__ring3d(pinLL);
           m3.addSource("pl", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m3.addLayer({ id: "pl", type: "circle", source: "pl", paint: { "circle-color": ["get", "c"], "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["+", 2, ["*", 1.5, ["get", "big"]]], 15, ["+", 5, ["*", 2, ["get", "big"]]], 18, ["+", 11, ["*", 4, ["get", "big"]]], 20.5, ["+", 18, ["*", 6, ["get", "big"]]]], "circle-stroke-color": "#ffffff", "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11, 0.5, 18, 2], "circle-stroke-opacity": 0.9, "circle-pitch-alignment": "map" } });
           try {
@@ -505,6 +529,12 @@
       }
     };
     window.__places3d = places;
+    window.__ring3d = function (ll) {
+      if (!m3 || !m3.getSource("ring")) return;
+      var f = [];
+      if (ll) { var c = [], cl = Math.cos(ll.lat * Math.PI / 180); for (var a = 0; a <= 64; a++) { var t = a / 64 * 2 * Math.PI; c.push([ll.lng + 805 * Math.sin(t) / (111320 * cl), ll.lat + 805 * Math.cos(t) / 111320]); } f.push({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [c] } }); }
+      m3.getSource("ring").setData({ type: "FeatureCollection", features: f });
+    };
   })();
   recompute();
 })();
