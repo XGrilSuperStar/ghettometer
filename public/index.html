@@ -42,6 +42,10 @@
   .ic { width: 34px; height: 34px; flex: none; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
   .ic svg { width: 21px; height: 21px; }
   .bars .ic { width: 18px; height: 18px; border-radius: 6px; } .bars .ic svg { width: 12px; height: 12px; }
+  .tgs { display: flex; flex-direction: column; gap: 3px; margin-left: auto; padding-left: 4px; font-size: 10.5px; color: var(--mut); }
+  .tg { display: flex; align-items: center; gap: 3px; white-space: nowrap; cursor: pointer; }
+  .tg input { margin: 0; accent-color: var(--acc); }
+  #zoomhint { position: absolute; z-index: 1000; left: 50%; bottom: 20px; transform: translateX(-50%); padding: 8px 14px; font-size: 13px; display: none; }
   .neg { background: #e5484d; } .pos { background: #1fa971; }
   #grad { height: 12px; border-radius: 6px; margin: 6px 0 3px; background: linear-gradient(to right, #1a9850, #91cf60, #ffffbf, #fc8d59, #d73027); }
   .lg { display: flex; justify-content: space-between; font-size: 11px; color: var(--mut); }
@@ -74,9 +78,10 @@
 <div id="msg"></div>
 
 <div id="panel" class="card">
-  <h3>What counts in the score</h3>
-  <div class="sub">Turn layers on or off. The score and colors update live.</div>
-  <div class="btns"><button id="allOn">All on</button><button id="allOff">All off</button></div>
+  <h3>Layers</h3>
+  <label class="row" style="border-top:0;padding-top:2px"><input type="checkbox" id="showScore" checked><div class="t"><b>Score dots</b><span>One dot per neighborhood, green (nice) to red (worse)</span></div></label>
+  <div class="sub" style="margin-top:6px"><b>Map</b> shows the real places in that layer's color (zoom in). <b>Score</b> counts it in the overall score.</div>
+  <div class="btns"><button id="allOn">All score on</button><button id="allOff">All score off</button><button id="noPlaces">Hide places</button></div>
   <div id="rows"></div>
   <h3 style="margin-top:10px">Color key</h3>
   <div id="grad"></div>
@@ -116,6 +121,7 @@
   <div class="bars" id="bars"></div>
   <div class="btns" style="justify-content:center"><button id="clear">Clear pin</button></div>
 </div>
+<div id="zoomhint" class="card"></div>
 <div id="map"></div>
 
 <script src="meter_data.js"></script>
@@ -132,8 +138,8 @@
     dispensaries:   ["Dispensaries", "Cannabis dispensaries within 1 mile. More = worse.", "neg", 15],
     cash_loans:     ["Cash loan places", "Payday / check cashing / pawn within 1 mile. More = worse.", "neg", 16],
     public_housing: ["Public housing", "HUD public housing within 1 mile. More = worse.", "neg", 17],
-    income:         ["Income", "Median household income in the area. Lower income = worse.", "neg", 21],
-    education:      ["Education", "Share of adults with a college (bachelor's) degree. Fewer = worse.", "neg", 22],
+    income:         ["Income", "Higher household income = nicer area.", "pos", 21],
+    education:      ["Education", "More adults with a college degree = nicer area.", "pos", 22],
     grocery:        ["Grocery stores", "Grocery stores within 1 mile. Fewer = worse.", "pos", 18],
     parks:          ["Parks", "Parks within 1 mile. Fewer = worse.", "pos", 19],
     transit:        ["Public transit", "Bus / train stops within 1 mile. Fewer = worse.", "pos", 20]
@@ -166,17 +172,38 @@
   // ---- layer toggles
   var active = {}; KEYS.forEach(function (k) { active[k] = true; });
   var rowsEl = document.getElementById("rows");
+  var PLACE_KEYS = ["fast_food", "strip_bars", "dispensaries", "cash_loans", "public_housing", "grocery", "parks", "transit"];
+  var mapOn = {};
   KEYS.forEach(function (k) {
-    var inf = INFO[k], r = document.createElement("label"); r.className = "row";
-    r.innerHTML = '<input type="checkbox" checked data-k="' + k + '"><div class="ic" style="color:' + LCOL[k] + ';background:' + LCOL[k] + '26">' + ICON[k] + '</div><div class="t"><b>' + inf[0] +
-      '<span class="tag ' + inf[2] + '">' + (inf[2] === "neg" ? "hurts" : "helps") + '</span></b><span>' + inf[1] + '</span></div>';
+    var inf = INFO[k], r = document.createElement("div"); r.className = "row";
+    var hasPlaces = PLACE_KEYS.indexOf(k) >= 0;
+    r.innerHTML = '<div class="ic" style="color:' + LCOL[k] + ';background:' + LCOL[k] + '26">' + ICON[k] + '</div><div class="t"><b>' + inf[0] +
+      '<span class="tag ' + inf[2] + '">' + (inf[2] === "neg" ? "hurts" : "helps") + '</span></b><span>' + inf[1] + '</span></div>' +
+      '<div class="tgs">' + (hasPlaces ? '<label class="tg"><input type="checkbox" data-map="' + k + '"> Map</label>' : '') +
+      '<label class="tg"><input type="checkbox" checked data-k="' + k + '"> Score</label></div>';
     rowsEl.appendChild(r);
   });
-  rowsEl.addEventListener("change", function (e) { active[e.target.dataset.k] = e.target.checked; recompute(); });
+  rowsEl.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.dataset.map) { mapOn[t.dataset.map] = t.checked; if (t.checked) loadPts(t.dataset.map, function () { pts._draw(); }); else pts._draw(); return; }
+    active[t.dataset.k] = t.checked; recompute();
+  });
   function setAll(v) {
     KEYS.forEach(function (k) { active[k] = v; });
-    Array.prototype.forEach.call(rowsEl.querySelectorAll("input"), function (i) { i.checked = v; });
+    Array.prototype.forEach.call(rowsEl.querySelectorAll("input[data-k]"), function (i) { i.checked = v; });
     recompute();
+  }
+  var showScore = true;
+  document.getElementById("showScore").onchange = function () { showScore = this.checked; dots._draw(); };
+  document.getElementById("noPlaces").onclick = function () {
+    Array.prototype.forEach.call(rowsEl.querySelectorAll("input[data-map]"), function (i) { i.checked = false; mapOn[i.dataset.map] = false; });
+    pts._draw();
+  };
+  function loadPts(k, cb) {
+    if (window.PTS && window.PTS[k]) return cb();
+    var sc = document.createElement("script"); sc.src = "points/" + k + ".js"; sc.onload = cb;
+    sc.onerror = function () { var m = document.getElementById("msg"); m.style.display = "block"; m.textContent = "Could not load places for " + INFO[k][0] + "."; };
+    document.head.appendChild(sc);
   }
   document.getElementById("allOn").onclick = function () { setAll(true); };
   document.getElementById("allOff").onclick = function () { setAll(false); };
@@ -225,6 +252,7 @@
       if (!this._map) return;
       var m = this._map, size = m.getSize(), tl = m.containerPointToLayerPoint([0, 0]);
       L.DomUtil.setPosition(this._canvas, tl); this._canvas.width = size.x; this._canvas.height = size.y;
+      if (!showScore) return;
       var ctx = this._canvas.getContext("2d"), b = m.getBounds().pad(0.05);
       var s = b.getSouth(), n = b.getNorth(), w = b.getWest(), e = b.getEast(), z = m.getZoom();
       var r = Math.min(30, Math.max(1.3, 0.55 * Math.pow(1.5, z - 4)));
@@ -235,12 +263,48 @@
         if (d[0] < s || d[0] > n || d[1] < w || d[1] > e) continue;
         var p = m.latLngToContainerPoint([d[0], d[1]]);
         if (single) { ctx.globalAlpha = 0.1 + 0.85 * d[col] / 100; ctx.fillStyle = LCOL[KEYS[col - 3]]; }
-        else { ctx.globalAlpha = 0.72; ctx.fillStyle = noneOn ? "#7d86b8" : COLORS[SC[i]]; }
+        else { ctx.globalAlpha = anyPlaces() ? 0.38 : 0.72; ctx.fillStyle = noneOn ? "#7d86b8" : COLORS[SC[i]]; }
         ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill();
       }
     }
   });
   var dots = new Dots(); dots.addTo(map);
+  function anyPlaces() { for (var k in mapOn) if (mapOn[k]) return true; return false; }
+  var MINZ = 8;
+  var Pts = L.Layer.extend({
+    onAdd: function (m) {
+      this._map = m; this._canvas = L.DomUtil.create("canvas", "leaflet-zoom-hide");
+      this._canvas.style.position = "absolute"; this._canvas.style.pointerEvents = "none";
+      m.getPanes().overlayPane.appendChild(this._canvas);
+      m.on("moveend zoomend resize", this._draw, this); this._draw();
+    },
+    onRemove: function (m) { L.DomUtil.remove(this._canvas); m.off("moveend zoomend resize", this._draw, this); },
+    _draw: function () {
+      if (!this._map) return;
+      var m = this._map, size = m.getSize(), tl = m.containerPointToLayerPoint([0, 0]);
+      L.DomUtil.setPosition(this._canvas, tl); this._canvas.width = size.x; this._canvas.height = size.y;
+      var hint = document.getElementById("zoomhint"), z = m.getZoom();
+      if (!anyPlaces()) { hint.style.display = "none"; return; }
+      if (z < MINZ) { hint.textContent = "Zoom in to see the places"; hint.style.display = "block"; return; }
+      hint.style.display = "none";
+      var ctx = this._canvas.getContext("2d"), b = m.getBounds().pad(0.03);
+      var s = b.getSouth() * 1e4, n = b.getNorth() * 1e4, w = b.getWest() * 1e4, e = b.getEast() * 1e4;
+      var r = z < 10 ? 2.4 : z < 13 ? 3.6 : z < 15 ? 5.5 : 8;
+      ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.65)";
+      PLACE_KEYS.forEach(function (k) {
+        if (!mapOn[k] || !window.PTS || !window.PTS[k]) return;
+        var a = window.PTS[k], lo = 0, hi = a.length / 2;
+        while (lo < hi) { var mid = (lo + hi) >> 1; if (a[2 * mid] < s) lo = mid + 1; else hi = mid; }
+        ctx.fillStyle = LCOL[k];
+        for (var i = lo; i < a.length / 2 && a[2 * i] <= n; i++) {
+          var lng = a[2 * i + 1]; if (lng < w || lng > e) continue;
+          var p = m.latLngToContainerPoint([a[2 * i] / 1e4, lng / 1e4]);
+          ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.2832); ctx.fill(); ctx.stroke();
+        }
+      });
+    }
+  });
+  var pts = new Pts(); pts.addTo(map);
   sel.addEventListener("change", function () {
     mode = sel.value; dots._draw();
     var g = document.getElementById("grad"), l = document.getElementById("lgL"), r = document.getElementById("lgR");
