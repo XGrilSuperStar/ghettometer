@@ -51,6 +51,8 @@
   .tgs { display: flex; flex-direction: column; gap: 3px; margin-left: auto; padding-left: 4px; font-size: 10.5px; color: var(--mut); }
   .tg { display: flex; align-items: center; gap: 3px; white-space: nowrap; cursor: pointer; }
   .tg input { margin: 0; accent-color: var(--acc); }
+  #sitelinks { position: absolute; z-index: 1000; left: 12px; bottom: 6px; font-size: 11.5px; color: var(--mut); background: rgba(11,16,48,.75); padding: 3px 8px; border-radius: 8px; }
+  #sitelinks a { color: var(--mut); text-decoration: none; } #sitelinks a:hover { color: var(--txt); }
   #zoomhint { position: absolute; z-index: 1000; left: 50%; bottom: 20px; transform: translateX(-50%); padding: 8px 14px; font-size: 13px; display: none; }
   .neg { background: #e5484d; } .pos { background: #1fa971; }
   #grad { height: 12px; border-radius: 6px; margin: 6px 0 3px; background: linear-gradient(to right, #1a9850, #91cf60, #ffffbf, #fc8d59, #d73027); }
@@ -149,6 +151,7 @@
   <div class="bars" id="bars"></div>
   <div class="btns" style="justify-content:center"><button id="clear">Clear pin</button></div>
 </div>
+<div id="sitelinks"><a href="about.html">About</a> · <a href="how-it-works.html">How it works</a> · <a href="faq.html">FAQ</a> · <a href="contact.html">Contact</a> · <a href="privacy.html">Privacy</a></div>
 <div id="zoomhint" class="card"></div>
 <!-- Credits: Map tiles & imagery: USGS The National Map (public domain). Mapping library: Leaflet (BSD). 3D view: MapLibre GL, OpenFreeMap / OpenMapTiles, data (c) OpenStreetMap contributors. Home values: Zillow ZHVI. Places: Overture Maps. Census ACS, HUD. -->
 <div id="map"></div>
