@@ -219,19 +219,20 @@
   }
   var showScore = false;
   function setScoreDots(v) {
-    showScore = v; document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
+    showScore = v; setPlacesHidden(v); document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
   }
   document.getElementById("showScore").onchange = function () { setScoreDots(this.checked); };
   document.getElementById("showScore2").onchange = function () { setScoreDots(this.checked); };
   var placesHidden = false;
-  document.getElementById("noPlaces").onclick = function () {
-    placesHidden = !placesHidden; this.textContent = placesHidden ? "Show places" : "Hide places";
+  function setPlacesHidden(h) {
+    placesHidden = h; document.getElementById("noPlaces").textContent = h ? "Show places" : "Hide places";
     Array.prototype.forEach.call(rowsEl.querySelectorAll("input[data-map]"), function (i) {
-      i.checked = !placesHidden; mapOn[i.dataset.map] = !placesHidden;
-      if (!placesHidden) loadPts(i.dataset.map, function () { pts._draw(); });
+      i.checked = !h; mapOn[i.dataset.map] = !h;
+      if (!h) loadPts(i.dataset.map, function () { pts._draw(); });
     });
     pts._draw();
-  };
+  }
+  document.getElementById("noPlaces").onclick = function () { setPlacesHidden(!placesHidden); };
   function loadPts(k, cb) {
     if (window.PTS && window.PTS[k]) return cb();
     var sc = document.createElement("script"); sc.src = "points/" + k + ".js?v=3"; sc.onload = cb;
