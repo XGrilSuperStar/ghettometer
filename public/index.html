@@ -178,7 +178,7 @@
     var inf = INFO[k], r = document.createElement("div"); r.className = "row";
     var hasPlaces = PLACE_KEYS.indexOf(k) >= 0;
     r.innerHTML = '<div class="ic" style="color:' + LCOL[k] + ';background:' + LCOL[k] + '26">' + ICON[k] + '</div><div class="t"><b>' + inf[0] +
-      '<span class="tag ' + inf[2] + '">' + (inf[2] === "neg" ? "hurts" : "helps") + '</span></b><span>' + inf[1] + '</span></div>' +
+      '</b><span>' + inf[1] + '</span></div>' +
       '<div class="tgs">' + (hasPlaces ? '<label class="tg"><input type="checkbox" data-map="' + k + '"> Map</label>' : '') +
       '<label class="tg"><input type="checkbox" checked data-k="' + k + '"> Score</label></div>';
     rowsEl.appendChild(r);
