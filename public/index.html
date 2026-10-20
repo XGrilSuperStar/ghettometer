@@ -143,6 +143,7 @@
   <div class="btns" style="justify-content:center"><button id="clear">Clear pin</button></div>
 </div>
 <div id="zoomhint" class="card"></div>
+<!-- Credits: Map tiles & imagery: USGS The National Map (public domain). Mapping library: Leaflet (BSD). 3D view: MapLibre GL, OpenFreeMap / OpenMapTiles, data (c) OpenStreetMap contributors. Home values: Zillow ZHVI. Places: Overture Maps. Census ACS, HUD. -->
 <div id="map"></div>
 <div id="map3d"></div>
 
@@ -271,7 +272,7 @@
   }
 
   // ---- map
-  var map = L.map("map", { preferCanvas: true }).setView([34.06, -117.18], 11);
+  var map = L.map("map", { preferCanvas: true, attributionControl: false }).setView([34.06, -117.18], 11);
   L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}", {
     maxNativeZoom: 16, maxZoom: 18, attribution: "Map: USGS The National Map"
   }).addTo(map);
