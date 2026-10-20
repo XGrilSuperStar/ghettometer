@@ -53,7 +53,7 @@
   .neg { background: #e5484d; } .pos { background: #1fa971; }
   #grad { height: 12px; border-radius: 6px; margin: 6px 0 3px; background: linear-gradient(to right, #1a9850, #91cf60, #ffffbf, #fc8d59, #d73027); }
   .lg { display: flex; justify-content: space-between; font-size: 11px; color: var(--mut); }
-  #meter { position: absolute; z-index: 1000; right: 12px; bottom: 28px; width: 290px; padding: 14px 16px 14px; text-align: center; }
+  #meter { position: absolute; z-index: 1000; right: 12px; bottom: 28px; width: 290px; max-height: calc(100% - 96px); overflow-y: auto; padding: 14px 16px 14px; text-align: center; }
   #meter h3 { margin: 0; font-size: 15px; letter-spacing: .4px; }
   #gauge { width: 250px; height: 250px; display: block; margin: 4px auto 0; }
   #needle { transform-origin: 130px 130px; transition: transform .9s cubic-bezier(.2,1.4,.4,1); }
