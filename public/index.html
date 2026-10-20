@@ -297,6 +297,7 @@
     }
   });
   var dots = new Dots(); dots.addTo(map);
+  var _dd = dots._draw; dots._draw = function () { _dd.apply(this, arguments); if (window.__places3d) window.__places3d(); };
   function anyPlaces() { for (var k in mapOn) if (mapOn[k]) return true; return false; }
   var MINZ = 5;
   var Pts = L.Layer.extend({
@@ -437,6 +438,12 @@
           feats.push({ type: "Feature", properties: { c: LCOL[k], big: (k === "strip_bars" || k === "dispensaries") ? 1 : 0 }, geometry: { type: "Point", coordinates: [lng / 1e4, a[2 * i] / 1e4] } });
         }
       });
+      var sf = [];
+      if (showScore) for (var q = 0; q < N; q++) {
+        var d = D[q]; if (d[0] * 1e4 < s || d[0] * 1e4 > n || d[1] * 1e4 < w || d[1] * 1e4 > e) continue;
+        sf.push({ type: "Feature", properties: { c: noneOn ? "#7d86b8" : COLORS[SC[q]] }, geometry: { type: "Point", coordinates: [d[1], d[0]] } });
+      }
+      var ss = m3.getSource("sc"); if (ss) ss.setData({ type: "FeatureCollection", features: sf });
       var src = m3.getSource("pl"); if (src) src.setData({ type: "FeatureCollection", features: feats });
     }
     function init() {
@@ -447,6 +454,8 @@
         m3 = new maplibregl.Map({ container: "map3d", style: style, center: [c.lng, c.lat], zoom: Math.max(map.getZoom(), 15.5), pitch: 60, bearing: -20, maxPitch: 80 });
         m3.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-left");
         m3.on("load", function () {
+          m3.addSource("sc", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+          m3.addLayer({ id: "sc", type: "circle", source: "sc", paint: { "circle-color": ["get", "c"], "circle-opacity": 0.35, "circle-blur": 0.5, "circle-radius": ["interpolate", ["exponential", 2], ["zoom"], 8, 2, 18, 2000], "circle-pitch-alignment": "map" } });
           m3.addSource("pl", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
           m3.addLayer({ id: "pl", type: "circle", source: "pl", paint: { "circle-color": ["get", "c"], "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["+", 2, ["*", 1.5, ["get", "big"]]], 18, ["+", 8, ["*", 3, ["get", "big"]]]], "circle-stroke-color": "rgba(0,0,0,.7)", "circle-stroke-width": 1, "circle-pitch-alignment": "map" } });
           m3.on("moveend", places); places();
