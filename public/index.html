@@ -68,7 +68,21 @@
   .pin { width: 22px; height: 22px; background: var(--acc); border: 3px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 2px 8px rgba(0,0,0,.7); }
   #msg { position: absolute; z-index: 1001; top: 84px; left: 50%; transform: translateX(-50%); background: #fff3cd; color: #333; padding: 8px 14px; border-radius: 8px; display: none; }
   #panel::-webkit-scrollbar { width: 6px; } #panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
-  @media (max-width: 700px) { #panel { width: 244px; } #meter { width: 230px; } #gauge { width: 200px; height: 200px; } }
+  @media (max-width: 700px) {
+    #bar { left: 8px; right: 8px; top: 8px; flex-wrap: wrap; padding: 8px 10px; gap: 6px; }
+    #bar input[type=text], #bar input:not([type]), #bar input[type=search] { flex: 1 1 0; min-width: 0; }
+    #bar b { display: none; }
+    #mode { display: none; }
+    #bar button { padding: 6px 10px; font-size: 13px; }
+    .leaflet-control-zoom, .maplibregl-ctrl-top-left { display: none; }
+    #panel { left: 8px; right: 8px; width: auto; top: 104px; max-height: calc(100% - 120px); }
+    #meter { left: 8px; right: 8px; bottom: 22px; width: auto; max-height: 52%; overflow: auto; padding: 8px 12px; }
+    #gauge { width: 130px; height: 130px; margin: 0 auto; }
+    #meter { max-height: 38%; }
+    #meter h3 { display: none; }
+    body.panelopen #meter { display: none; }
+    #zoomhint { bottom: 8px; }
+  }
 </style>
 </head>
 <body>
@@ -228,7 +242,9 @@
   document.getElementById("allOff").onclick = function () { setAll(false); };
   document.getElementById("layersBtn").onclick = function () {
     var p = document.getElementById("panel"); p.style.display = p.style.display === "none" ? "block" : "none";
+    document.body.classList.toggle("panelopen", p.style.display !== "none");
   };
+  if (window.innerWidth <= 700) document.getElementById("panel").style.display = "none";
 
   var sel = document.getElementById("mode");
   var o = document.createElement("option"); o.value = "score"; o.textContent = "Show: overall score"; sel.appendChild(o);
