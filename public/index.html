@@ -91,6 +91,7 @@
 
 <div id="meter" class="card">
   <h3>The Gettometer</h3>
+  <label class="tg" style="justify-content:center;margin:4px 0 0;font-size:12px"><input type="checkbox" id="showScore2" checked> Show green-to-red score on map</label>
   <svg id="gauge" viewBox="0 0 260 260">
     <defs>
       <linearGradient id="bezel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9edf5"/><stop offset=".35" stop-color="#8b93a8"/><stop offset=".6" stop-color="#f4f6fb"/><stop offset="1" stop-color="#6b7388"/></linearGradient>
@@ -157,8 +158,8 @@
     parks: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="5.5" fill="currentColor" fill-opacity=".25"/><path d="M12 14v8M12 17.5l3-2.5M12 15.5L9.5 13.5"/></svg>',
     transit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M4 7.5h16"/><path d="M8 14.5h.01M16 14.5h.01"/><path d="M6.5 18v2.5M17.5 18v2.5"/></svg>'
   };
-  var LCOL = { fast_food:"#ff8a1f", strip_bars:"#ff4fa3", dispensaries:"#34d17a", cash_loans:"#ffd43b", public_housing:"#9a8cff",
-               income:"#22d3ee", education:"#4f8cff", grocery:"#ff6b6b", parks:"#7ed957", transit:"#2dd4bf" };
+  var LCOL = { fast_food:"#ff8a1f", strip_bars:"#ff3d8b", dispensaries:"#22c55e", cash_loans:"#ffd400", public_housing:"#a066ff",
+               income:"#e879f9", education:"#3b82f6", grocery:"#f1f5f9", parks:"#14b8a6", transit:"#22d3ee" };
   var STOPS = [[26,152,80],[145,207,96],[255,255,191],[252,141,89],[215,48,39]];
   function color(v) {
     var t = Math.max(0, Math.min(1, v / 100)) * (STOPS.length - 1);
@@ -194,7 +195,11 @@
     recompute();
   }
   var showScore = true;
-  document.getElementById("showScore").onchange = function () { showScore = this.checked; dots._draw(); };
+  function setScoreDots(v) {
+    showScore = v; document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
+  }
+  document.getElementById("showScore").onchange = function () { setScoreDots(this.checked); };
+  document.getElementById("showScore2").onchange = function () { setScoreDots(this.checked); };
   document.getElementById("noPlaces").onclick = function () {
     Array.prototype.forEach.call(rowsEl.querySelectorAll("input[data-map]"), function (i) { i.checked = false; mapOn[i.dataset.map] = false; });
     pts._draw();
