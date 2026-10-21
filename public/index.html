@@ -108,7 +108,7 @@
 
 <div id="panel" class="card">
   <h3>Layers</h3>
-  <label class="row" style="border-top:0;padding-top:2px"><input type="checkbox" id="showScore"><div class="t"><b>Score dots</b><span>One dot per neighborhood, green (nice) to red (worse)</span></div></label>
+  <label class="row" style="border-top:0;padding-top:2px"><input type="checkbox" id="showScore" autocomplete="off"><div class="t"><b>Score dots</b><span>One dot per neighborhood, green (nice) to red (worse)</span></div></label>
   <div class="sub" style="margin-top:6px"><b>Map</b> shows the real places in that layer's color (zoom in). <b>Score</b> counts it in the overall score.</div>
   <div class="btns"><button id="allOn">All score on</button><button id="allOff">All score off</button><button id="noPlaces">Show places</button></div>
   <div id="rows"></div>
@@ -120,7 +120,7 @@
 
 <div id="meter" class="card">
   <h3>The Ghettometer</h3>
-  <label class="tg" style="justify-content:center;margin:4px 0 0;font-size:12px"><input type="checkbox" id="showScore2"> Show green-to-red score on map</label>
+  <label class="tg" style="justify-content:center;margin:4px 0 0;font-size:12px"><input type="checkbox" id="showScore2" autocomplete="off"> Show green-to-red score on map</label>
   <svg id="gauge" viewBox="0 0 260 260">
     <defs>
       <linearGradient id="bezel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9edf5"/><stop offset=".35" stop-color="#8b93a8"/><stop offset=".6" stop-color="#f4f6fb"/><stop offset="1" stop-color="#6b7388"/></linearGradient>
@@ -233,6 +233,7 @@
     recompute();
   }
   var showScore = false;
+  document.getElementById("showScore").checked = false; document.getElementById("showScore2").checked = false;
   function setScoreDots(v) {
     showScore = v; document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
   }
@@ -254,8 +255,8 @@
     sc.onerror = function () { var m = document.getElementById("msg"); m.style.display = "block"; m.textContent = "Could not load places for " + INFO[k][0] + "."; };
     document.head.appendChild(sc);
   }
-  document.getElementById("allOn").onclick = function () { setAll(true); };
-  document.getElementById("allOff").onclick = function () { setAll(false); };
+  document.getElementById("allOn").onclick = function () { setAll(true); if (!showScore) setScoreDots(true); };
+  document.getElementById("allOff").onclick = function () { setAll(false); if (!showScore) setScoreDots(true); };
   document.getElementById("layersBtn").onclick = function () {
     var p = document.getElementById("panel"); p.style.display = p.style.display === "none" ? "block" : "none";
     document.body.classList.toggle("panelopen", p.style.display !== "none");
@@ -319,7 +320,8 @@
       var r = Math.min(30, Math.max(1.3, 0.55 * Math.pow(1.5, z - 4)));
       ctx.globalAlpha = 0.72;
       var single = mode !== "score", col = single ? 3 + parseInt(mode, 10) : 0;
-      for (var i = 0; i < N; i++) {
+      var step = z < 5 ? 6 : z < 6 ? 4 : z < 7 ? 2 : 1;
+      for (var i = 0; i < N; i += step) {
         var d = D[i];
         if (d[0] < s || d[0] > n || d[1] < w || d[1] > e) continue;
         var p = m.latLngToContainerPoint([d[0], d[1]]);
