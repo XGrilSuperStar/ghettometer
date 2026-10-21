@@ -232,7 +232,7 @@
   }
   var showScore = false;
   function setScoreDots(v) {
-    showScore = v; setPlacesHidden(v); document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
+    showScore = v; document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
   }
   document.getElementById("showScore").onchange = function () { setScoreDots(this.checked); };
   document.getElementById("showScore2").onchange = function () { setScoreDots(this.checked); };
