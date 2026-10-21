@@ -84,7 +84,7 @@
     .leaflet-control-zoom, .maplibregl-ctrl-top-left { display: none; }
     #panel { left: 8px; right: 8px; width: auto; top: calc(104px + var(--adh)); max-height: calc(100% - 120px - var(--adh)); }
     #meter { left: 8px; right: 8px; bottom: 22px; width: auto; max-height: 52%; overflow: auto; padding: 8px 12px; }
-    #gauge { width: 130px; height: 130px; margin: 0 auto; }
+    #gauge { width: 96px; height: 96px; margin: 0 auto; }
     #meter { max-height: 38%; }
     #meter h3 { display: none; }
     body.panelopen #meter { display: none; }
@@ -261,8 +261,9 @@
     var p = document.getElementById("panel"); p.style.display = p.style.display === "none" ? "block" : "none";
     document.body.classList.toggle("panelopen", p.style.display !== "none");
   };
-  document.getElementById("panel").style.display = "block";
-  document.body.classList.add("panelopen");
+  var startOpen = window.innerWidth > 700; // on phones the layers panel covers the whole map, so start closed
+  document.getElementById("panel").style.display = startOpen ? "block" : "none";
+  if (startOpen) document.body.classList.add("panelopen");
 
   var sel = document.getElementById("mode");
   var o = document.createElement("option"); o.value = "score"; o.textContent = "Show: overall score"; sel.appendChild(o);
@@ -288,7 +289,7 @@
   }
 
   // ---- map
-  var US_BOUNDS = L.latLngBounds([16.5, -180], [72, -64]);
+  var US_BOUNDS = L.latLngBounds([-60, -205], [85, -39]); // roomy enough that tall phone screens are not clamped off-center
   var map = L.map("map", { preferCanvas: true, attributionControl: false, zoomSnap: 0.25, maxBounds: US_BOUNDS, maxBoundsViscosity: 1.0, worldCopyJump: false });
   var L48 = L.latLngBounds([24, -125.5], [50, -66]);
   function fitUS() { var z = map.getBoundsZoom(L48, false); map.setMinZoom(z); return z; }
