@@ -108,7 +108,6 @@
 
 <div id="panel" class="card">
   <h3>Layers</h3>
-  <label class="row" style="border-top:0;padding-top:2px"><input type="checkbox" id="showScore" autocomplete="off"><div class="t"><b>Score dots</b><span>One dot per neighborhood, green (nice) to red (worse)</span></div></label>
   <div class="sub" style="margin-top:6px"><b>Map</b> shows the real places in that layer's color (zoom in). <b>Score</b> counts it in the overall score.</div>
   <div class="btns"><button id="allOn">All score on</button><button id="allOff">All score off</button><button id="noPlaces">Show places</button></div>
   <div id="rows"></div>
@@ -233,11 +232,10 @@
     recompute();
   }
   var showScore = false;
-  document.getElementById("showScore").checked = false; document.getElementById("showScore2").checked = false;
+  document.getElementById("showScore2").checked = false;
   function setScoreDots(v) {
-    showScore = v; document.getElementById("showScore").checked = v; document.getElementById("showScore2").checked = v; dots._draw();
+    showScore = v; document.getElementById("showScore2").checked = v; dots._draw();
   }
-  document.getElementById("showScore").onchange = function () { setScoreDots(this.checked); };
   document.getElementById("showScore2").onchange = function () { setScoreDots(this.checked); };
   var placesHidden = true;
   function setPlacesHidden(h) {
