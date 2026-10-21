@@ -110,7 +110,7 @@
   <h3>Layers</h3>
   <label class="row" style="border-top:0;padding-top:2px"><input type="checkbox" id="showScore"><div class="t"><b>Score dots</b><span>One dot per neighborhood, green (nice) to red (worse)</span></div></label>
   <div class="sub" style="margin-top:6px"><b>Map</b> shows the real places in that layer's color (zoom in). <b>Score</b> counts it in the overall score.</div>
-  <div class="btns"><button id="allOn">All score on</button><button id="allOff">All score off</button><button id="noPlaces">Hide places</button></div>
+  <div class="btns"><button id="allOn">All score on</button><button id="allOff">All score off</button><button id="noPlaces">Show places</button></div>
   <div id="rows"></div>
   <h3 style="margin-top:10px">Color key</h3>
   <div id="grad"></div>
@@ -210,13 +210,13 @@
   var active = {}; KEYS.forEach(function (k) { active[k] = true; });
   var rowsEl = document.getElementById("rows");
   var PLACE_KEYS = ["fast_food", "strip_bars", "dispensaries", "cash_loans", "public_housing", "grocery", "parks", "transit"];
-  var mapOn = {}; ["fast_food","strip_bars","dispensaries","cash_loans","public_housing","grocery","parks","transit"].forEach(function(k){mapOn[k]=true;});
+  var mapOn = {}; ["fast_food","strip_bars","dispensaries","cash_loans","public_housing","grocery","parks","transit"].forEach(function(k){mapOn[k]=false;});
   KEYS.forEach(function (k) {
     var inf = INFO[k], r = document.createElement("div"); r.className = "row";
     var hasPlaces = PLACE_KEYS.indexOf(k) >= 0;
     r.innerHTML = '<div class="ic" style="color:' + LCOL[k] + ';background:' + LCOL[k] + '26">' + ICON[k] + '</div><div class="t"><b>' + inf[0] +
       '</b><span>' + inf[1] + '</span></div>' +
-      '<div class="tgs">' + (hasPlaces ? '<label class="tg"><input type="checkbox" data-map="' + k + '" checked> Map</label>' : '') +
+      '<div class="tgs">' + (hasPlaces ? '<label class="tg"><input type="checkbox" data-map="' + k + '"> Map</label>' : '') +
       '<label class="tg"><input type="checkbox" checked data-k="' + k + '"> Score</label></div>';
     rowsEl.appendChild(r);
   });
@@ -236,7 +236,7 @@
   }
   document.getElementById("showScore").onchange = function () { setScoreDots(this.checked); };
   document.getElementById("showScore2").onchange = function () { setScoreDots(this.checked); };
-  var placesHidden = false;
+  var placesHidden = true;
   function setPlacesHidden(h) {
     placesHidden = h; document.getElementById("noPlaces").textContent = h ? "Show places" : "Hide places";
     Array.prototype.forEach.call(rowsEl.querySelectorAll("input[data-map]"), function (i) {
