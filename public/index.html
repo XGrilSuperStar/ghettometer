@@ -157,7 +157,7 @@
 <div id="map"></div>
 <div id="map3d"></div>
 
-<script src="meter_data.js?v=4"></script>
+<script src="meter_data.js?v=5"></script>
 <script>
 (function () {
   if (!window.METER) {
@@ -165,6 +165,8 @@
     m.textContent = "meter_data.js not found. Run run_build in this folder first."; return;
   }
   var D = window.METER, KEYS = window.METER_KEYS, N = D.length;
+  function nm(i) { return (window.METER_NAMES && window.METER_NAMES[i]) || ""; }
+  (function () { var sc = document.createElement("script"); sc.src = "names.js?v=1"; sc.async = true; sc.onload = function () { try { updatePin(); } catch (e) {} }; document.head.appendChild(sc); })();
   var INFO = {
     fast_food:      ["Fast food", "Fast food places within 1 mile. More = worse.", "neg", 15],
     strip_bars:     ["Strip bars", "Strip clubs within 1 mile. Any = worse.", "neg", 16],
@@ -438,10 +440,10 @@
     var valEl = document.getElementById("val"), wordEl = document.getElementById("word"),
         whereEl = document.getElementById("where"), barsEl = document.getElementById("bars");
     if (pinIdx < 0) { valEl.textContent = "--"; wordEl.textContent = "Click the map to drop a pin"; whereEl.textContent = ""; barsEl.innerHTML = ""; setNeedle(50); return; }
-    if (noneOn) { valEl.textContent = "--"; wordEl.textContent = "Turn a layer on"; wordEl.style.color = "#9aa3d6"; whereEl.textContent = D[pinIdx][28]; barsEl.innerHTML = ""; setNeedle(50); return; }
+    if (noneOn) { valEl.textContent = "--"; wordEl.textContent = "Turn a layer on"; wordEl.style.color = "#9aa3d6"; whereEl.textContent = nm(pinIdx); barsEl.innerHTML = ""; setNeedle(50); return; }
     var d = D[pinIdx], v = SC[pinIdx];
     valEl.textContent = v; wordEl.textContent = word(v); wordEl.style.color = COLORS[v];
-    whereEl.textContent = d[28] + "  (score 0 = nicest, 100 = worst)";
+    whereEl.textContent = nm(pinIdx) + "  (score 0 = nicest, 100 = worst)";
     setNeedle(v);
     var html = "";
     KEYS.forEach(function (k, i) {
