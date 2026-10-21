@@ -209,7 +209,7 @@
   function word(v) { for (var i = 0; i < WORDS.length; i++) if (v < WORDS[i][0]) return WORDS[i][1]; return "Ghetto"; }
 
   // ---- layer toggles
-  var active = {}; KEYS.forEach(function (k) { active[k] = true; });
+  var active = {}; KEYS.forEach(function (k) { active[k] = false; });
   var rowsEl = document.getElementById("rows");
   var PLACE_KEYS = ["fast_food", "strip_bars", "dispensaries", "cash_loans", "public_housing", "grocery", "parks", "transit"];
   var mapOn = {}; ["fast_food","strip_bars","dispensaries","cash_loans","public_housing","grocery","parks","transit"].forEach(function(k){mapOn[k]=false;});
@@ -219,7 +219,7 @@
     r.innerHTML = '<div class="ic" style="color:' + LCOL[k] + ';background:' + LCOL[k] + '26">' + ICON[k] + '</div><div class="t"><b>' + inf[0] +
       '</b><span>' + inf[1] + '</span></div>' +
       '<div class="tgs">' + (hasPlaces ? '<label class="tg"><input type="checkbox" data-map="' + k + '"> Map</label>' : '') +
-      '<label class="tg"><input type="checkbox" checked data-k="' + k + '"> Score</label></div>';
+      '<label class="tg"><input type="checkbox" data-k="' + k + '"> Score</label></div>';
     rowsEl.appendChild(r);
   });
   rowsEl.addEventListener("change", function (e) {
@@ -290,8 +290,9 @@
   // ---- map
   var US_BOUNDS = L.latLngBounds([16.5, -180], [72, -64]);
   var map = L.map("map", { preferCanvas: true, attributionControl: false, zoomSnap: 0.25, maxBounds: US_BOUNDS, maxBoundsViscosity: 1.0, worldCopyJump: false });
-  function fitUS() { var z = map.getBoundsZoom(US_BOUNDS, false); map.setMinZoom(z); return z; }
-  map.fitBounds(US_BOUNDS); fitUS(); window.__map = map;
+  var L48 = L.latLngBounds([24, -125.5], [50, -66]);
+  function fitUS() { var z = map.getBoundsZoom(L48, false); map.setMinZoom(z); return z; }
+  map.fitBounds(L48); fitUS(); window.__map = map;
   window.addEventListener("resize", function () { fitUS(); });
   L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}", {
     maxNativeZoom: 16, maxZoom: 18, attribution: "Map: USGS The National Map"
