@@ -152,11 +152,11 @@
 </div>
 <div id="sitelinks"><a href="about.html">About</a> · <a href="how-it-works.html">How it works</a> · <a href="faq.html">FAQ</a> · <a href="contact.html">Contact</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <span>&copy; 2026 Ghettometer</span></div>
 <div id="zoomhint" class="card"></div>
-<!-- Credits: Map tiles & imagery: USGS The National Map (public domain). Mapping library: Leaflet (BSD). 3D view: MapLibre GL, OpenFreeMap / OpenMapTiles, data (c) OpenStreetMap contributors. Home values: Zillow ZHVI. Places: Overture Maps. Census ACS, HUD. -->
+<!-- Credits: Map tiles & imagery: USGS The National Map (public domain). Mapping library: Leaflet (BSD). 3D view: MapLibre GL, OpenFreeMap / OpenMapTiles, data (c) OpenStreetMap contributors. Home values: Census ACS (median home value). Places: Overture Maps. Census ACS, HUD. -->
 <div id="map"></div>
 <div id="map3d"></div>
 
-<script src="meter_data.js?v=5"></script>
+<script src="meter_data.js?v=6"></script>
 <script>
 (function () {
   if (!window.METER) {
@@ -177,7 +177,7 @@
     grocery:        ["Grocery stores", "Grocery stores within 1 mile. Fewer = worse.", "pos", 20],
     parks:          ["Parks", "Parks within 1 mile. Fewer = worse.", "pos", 21],
     transit:        ["Public transit", "Bus / train stops within 1 mile. Fewer = worse.", "pos", 22],
-    home_growth:    ["Rising home values", "Home value change over the last 3 years. Rising = nicer.", "pos", 26],
+    home_value:     ["Home values", "Median home value of the neighborhood. Higher = nicer.", "pos", 26],
     school_quality: ["School quality", "Test scores (reading and math) at nearby public schools. Higher = nicer.", "pos", 27]
   };
 
@@ -191,12 +191,12 @@
     education: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11.5v4.2c0 1.4 2.7 2.8 6 2.8s6-1.4 6-2.8v-4.2"/><path d="M22 9v6"/></svg>',
     grocery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h3l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.1L20.5 7H6"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>',
     parks: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="5.5" fill="currentColor" fill-opacity=".25"/><path d="M12 14v8M12 17.5l3-2.5M12 15.5L9.5 13.5"/></svg>',
-    home_growth: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
+    home_value: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>',
     school_quality: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-6 9 6"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/><path d="M12 4V2M12 2h3"/></svg>',
     transit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M4 7.5h16"/><path d="M8 14.5h.01M16 14.5h.01"/><path d="M6.5 18v2.5M17.5 18v2.5"/></svg>'
   };
   var LCOL = { fast_food:"#ff8a1f", strip_bars:"#ff3d8b", dispensaries:"#22c55e", cash_loans:"#ffd400", public_housing:"#a066ff",
-               income:"#e879f9", education:"#3b82f6", grocery:"#f1f5f9", parks:"#14b8a6", transit:"#22d3ee", home_growth:"#a3e635", school_quality:"#f87171" };
+               income:"#e879f9", education:"#3b82f6", grocery:"#f1f5f9", parks:"#14b8a6", transit:"#22d3ee", home_value:"#a3e635", school_quality:"#f87171" };
   var STOPS = [[26,152,80],[145,207,96],[255,255,191],[252,141,89],[215,48,39]];
   function color(v) {
     var t = Math.max(0, Math.min(1, v / 100)) * (STOPS.length - 1);
@@ -423,7 +423,7 @@
     if (k === "income") return d[23] === null ? "n/a" : "$" + d[23].toLocaleString();
     if (k === "education") return d[24] === null ? "n/a" : Math.round(d[24]) + "% have degree";
     if (pinCounts && pinCounts[k] !== undefined) return pinCounts[k] === null ? "..." : pinCounts[k] + " in 0.5 mi";
-    if (k === "home_growth") return d[26] === null ? "n/a" : (d[26] > 0 ? "+" : "") + d[26] + "% in 3 yrs";
+    if (k === "home_value") return d[26] === null ? "n/a" : "$" + d[26].toLocaleString();
     if (k === "school_quality") return d[27] === null ? "n/a" : d[27] + "% proficient";
     return String(d[inf[3]]);
   }
