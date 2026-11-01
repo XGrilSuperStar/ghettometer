@@ -16,6 +16,10 @@
   @keyframes rise { from { transform: translateY(0) scale(.8); opacity: 1 } to { transform: translateY(-70px) scale(1.4); opacity: 0 } }
   #me { position: absolute; z-index: 5; right: 14px; bottom: 24px; bottom: calc(24px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 50%; border: 2px solid #2b3a9a; background: #0b1030; box-shadow: 0 5px 0 #060a22, 0 0 18px rgba(80,110,255,.35); color: #8fe3ff; font-size: 24px; cursor: pointer; }
   #me:active { transform: translateY(3px); box-shadow: 0 2px 0 #060a22; }
+  #gauge { position: absolute; z-index: 5; right: 14px; top: 14px; top: calc(14px + env(safe-area-inset-top)); width: 150px; text-align: center; padding: 8px 8px 8px; border-radius: 18px; background: #0b1030; border: 2px solid #2b3a9a; box-shadow: 0 5px 0 #060a22, 0 0 18px rgba(80,110,255,.35); }
+  #gauge svg { display: block; margin: 0 auto -10px; }
+  #gnum { display: block; font-size: 26px; font-weight: 900; line-height: 1; }
+  #gauge span { font-size: 10px; font-weight: 800; letter-spacing: .12em; color: #8c97d8; }
   #hint { position: absolute; z-index: 5; left: 50%; top: 16px; transform: translateX(-50%); padding: 9px 16px; border-radius: 16px; background: #0b1030; border: 2px solid #2b3a9a; font-weight: 800; font-size: 14px; display: none; white-space: nowrap; }
   #sheet { position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); background: linear-gradient(#10163f, #080b24); border-top: 2px solid #3a4cc9; border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(60,90,255,.35); transform: translateY(110%); transition: transform .35s cubic-bezier(.3,1.5,.5,1); max-width: 520px; margin: 0 auto; }
   #sheet.open { transform: none; }
@@ -34,6 +38,7 @@
 </head><body>
 <div id="map"></div>
 <div id="money"><span>💵</span><span id="moneyV">1000</span></div>
+<div id="gauge"><svg viewBox="0 0 120 74" width="132"><defs><linearGradient id="gg" x1="0" x2="1"><stop offset="0" stop-color="#19f0c8"/><stop offset=".5" stop-color="#ffd23f"/><stop offset="1" stop-color="#ff2e93"/></linearGradient></defs><path d="M10 64 A50 50 0 0 1 110 64" fill="none" stroke="#1a2260" stroke-width="12" stroke-linecap="round"/><path d="M10 64 A50 50 0 0 1 110 64" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round"/><g id="needle" style="transform-origin:60px 64px;transition:transform .6s cubic-bezier(.3,1.6,.5,1);transform:rotate(-90deg)"><path d="M60 64 L60 22" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="60" cy="64" r="6" fill="#fff"/></svg><b id="gnum">--</b><span>GHETTO METER</span></div>
 <div id="hint"></div>
 <button id="me" aria-label="My location">◎</button>
 <div id="sheet">
@@ -105,10 +110,10 @@
       else if (t === "line" && /_casing$/.test(id)) l.paint["line-color"] = "#05070d";
       else if (t === "line") l.paint["line-color"] = "#8a9bff";
       else if (t === "fill-extrusion") {
-        l.paint["fill-extrusion-color"] = ["interpolate", ["linear"], ["get", "render_height"], 0, "#1b2566", 40, "#2e3f9e", 150, "#5a70e0"];
-        l.paint["fill-extrusion-opacity"] = 0.5;
-        l.paint["fill-extrusion-height"] = ["*", 1.2, ["get", "render_height"]];
-        l.paint["fill-extrusion-base"] = ["*", 1.2, ["get", "render_min_height"]];
+        l.paint["fill-extrusion-color"] = ["interpolate", ["linear"], ["get", "render_height"], 0, "#26338f", 40, "#3a4cc0", 150, "#6a80f0"];
+        l.paint["fill-extrusion-opacity"] = 0.92; l.paint["fill-extrusion-vertical-gradient"] = true;
+        l.paint["fill-extrusion-height"] = ["*", 1.6, ["get", "render_height"]];
+        l.paint["fill-extrusion-base"] = ["*", 1.6, ["get", "render_min_height"]];
       }
       else if (t === "symbol") {
         if (KEEP.test(id)) { l.paint["text-color"] = "#c8d2ff"; l.paint["text-halo-color"] = "#05070d"; l.paint["text-halo-width"] = 1.6; }
@@ -123,7 +128,7 @@
 
   fetch("https://tiles.openfreemap.org/styles/liberty").then(function (r) { return r.json(); }).then(function (style) {
     style = gameStyle(style);
-    map = new maplibregl.Map({ container: "map", style: style, center: FALLBACK, zoom: 16.2, pitch: 55, bearing: -17, maxPitch: 70, maxZoom: 19.5, attributionControl: { compact: true } });
+    map = new maplibregl.Map({ container: "map", style: style, center: FALLBACK, zoom: 16.2, pitch: 62, bearing: -17, maxPitch: 70, maxZoom: 19.5, attributionControl: { compact: true } });
     window.__gmap = map;
     map.on("load", function () {
       map.addSource("gb", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -141,8 +146,9 @@
       });
       map.on("mouseenter", "gb-fill", function () { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "gb-fill", function () { map.getCanvas().style.cursor = ""; });
-      map.on("moveend", later);
-      ready = true; locate(true); later();
+      map.setLight({ anchor: "viewport", position: [1.4, 200, 50], intensity: 0.7, color: "#ffffff" });
+      map.on("moveend", later); map.on("moveend", centerScore);
+      ready = true; locate(true); later(); centerScore();
     });
   });
 
@@ -187,10 +193,10 @@
     if (mine) { c.textContent = "Yours!"; c.disabled = true; }
     else if (money < priceOf(b)) { c.textContent = "Need $" + (priceOf(b) - money) + " more"; c.disabled = true; }
     else { c.textContent = "Claim it  $" + priceOf(b); c.disabled = false; }
-    $("sheet").classList.add("open");
+    setGauge(b.score); $("sheet").classList.add("open");
   }
   window.__select = select;
-  $("close").onclick = function () { $("sheet").classList.remove("open"); selKey = null; map.setFilter("gb-sel", ["==", ["get", "key"], ""]); };
+  $("close").onclick = function () { $("sheet").classList.remove("open"); selKey = null; map.setFilter("gb-sel", ["==", ["get", "key"], ""]); centerScore(); };
   function setMoney(v, delta, at) {
     money = v; $("moneyV").textContent = money; save();
     var m = $("moneyV"); m.classList.remove("bounce"); void m.offsetWidth; m.classList.add("bounce");
@@ -204,6 +210,8 @@
     owned[selKey] = 1; setMoney(money - cost, -cost, { x: pr.x, y: pr.y }); push(); select(selKey);
   };
 
+  function setGauge(v) { $("gnum").textContent = v === null ? "--" : v; $("needle").style.transform = "rotate(" + (v === null ? -90 : -90 + v * 1.8) + "deg)"; }
+  function centerScore() { if (selKey) return; var c = map.getCenter(), i = nearest(c.lat, c.lng); setGauge(i >= 0 ? GS[i] : null); }
   // my location dot
   var dot = null;
   function locate(initial) {
