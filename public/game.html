@@ -129,9 +129,23 @@
   var map, blocks = {}, count = 0, selKey = null, seq = 0, tmr = null, ready = false;
   var FALLBACK = [-118.2437, 34.0522];
 
-  function getPos() { return new Promise(function (ok) { if (!navigator.geolocation) return ok(null); navigator.geolocation.getCurrentPosition(function (p) { ok([p.coords.longitude, p.coords.latitude]); }, function () { ok(null); }, { timeout: 7000, enableHighAccuracy: true }); }); }
-  Promise.all([fetch("https://tiles.openfreemap.org/styles/liberty").then(function (r) { return r.json(); }), getPos()]).then(function (res) {
-    var style = res[0], startLL = res[1];
+  // ask for location immediately, before the map even loads; no short timeout so the permission box can be answered
+  var gotLL = null, dot = null, fail = false;
+  function placeDot(ll) {
+    if (!dot) { var el = document.createElement("div"); el.style.cssText = "width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #00f0ff;box-shadow:0 0 14px 6px rgba(0,240,255,.7)"; dot = new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map); }
+    else dot.setLngLat(ll);
+  }
+  function goTo(ll, instant) { placeDot(ll); map.easeTo({ center: ll, zoom: Math.max(map.getZoom(), 16.6), pitch: 62, duration: instant ? 0 : 900 }); }
+  function askLoc(manual) {
+    if (!navigator.geolocation) { fail = true; return; }
+    navigator.geolocation.getCurrentPosition(function (p) {
+      gotLL = [p.coords.longitude, p.coords.latitude]; hint("");
+      if (ready) goTo(gotLL, !manual);
+    }, function () { fail = true; if (ready) { hint("Location is blocked. Click the lock by the address bar and allow it."); setTimeout(function () { hint(""); }, 6000); } }, { timeout: 120000, maximumAge: 60000, enableHighAccuracy: false });
+  }
+  askLoc(false);
+  fetch("https://tiles.openfreemap.org/styles/liberty").then(function (r) { return r.json(); }).then(function (style) {
+    var startLL = gotLL;
     style = gameStyle(style);
     map = new maplibregl.Map({ container: "map", style: style, center: startLL || FALLBACK, zoom: 16.6, pitch: 62, bearing: -17, maxPitch: 70, maxZoom: 19.5, attributionControl: { compact: true } });
     window.__gmap = map;
@@ -162,7 +176,7 @@
       map.on("mouseleave", "gb-fill", function () { map.getCanvas().style.cursor = ""; });
       map.setLight({ anchor: "viewport", position: [1.4, 200, 50], intensity: 0.7, color: "#ffffff" });
       map.on("moveend", later); map.on("moveend", centerScore);
-      ready = true; if (!startLL) { hint("Turn on location to start where you are"); setTimeout(function () { hint(""); }, 5000); } else locate(true); later(); centerScore();
+      ready = true; if (gotLL) goTo(gotLL, true); else if (fail) { hint("Location is blocked. Click the lock by the address bar and allow it."); setTimeout(function () { hint(""); }, 6000); } else hint("Allow location to start where you are"); later(); centerScore();
     });
   });
 
@@ -291,17 +305,7 @@
   function setGauge(v) { $("gnum").textContent = v === null ? "--" : v; $("needle").style.transform = "rotate(" + (v === null ? -90 : -90 + v * 1.8) + "deg)"; }
   function centerScore() { if (selKey) return; var c = map.getCenter(), i = nearest(c.lat, c.lng); setGauge(i >= 0 ? GS[i] : null); }
   // my location dot
-  var dot = null;
-  function locate(initial) {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(function (pos) {
-      var ll = [pos.coords.longitude, pos.coords.latitude];
-      if (!dot) { var el = document.createElement("div"); el.style.cssText = "width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #00f0ff;box-shadow:0 0 14px 6px rgba(0,240,255,.7)"; dot = new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map); }
-      else dot.setLngLat(ll);
-      map.easeTo({ center: ll, zoom: Math.max(map.getZoom(), 16), duration: initial ? 0 : 900 });
-    }, function () { if (!initial) { hint("Location is off for this site"); setTimeout(function () { hint(""); }, 3000); } }, { timeout: 8000, enableHighAccuracy: true });
-  }
-  $("me").onclick = function () { locate(false); };
+  $("me").onclick = function () { if (gotLL) goTo(gotLL, false); else askLoc(true); };
 })();
 </script>
 </body></html>
