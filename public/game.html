@@ -1,223 +1,221 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>Ghettometer Game</title>
-<link rel="stylesheet" href="leaflet/leaflet.css" />
-<script src="leaflet/leaflet.js"></script>
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Ghettometer</title>
+<link rel="stylesheet" href="maplibre/maplibre-gl.css">
 <style>
-  :root { --bg:#04060c; --you:#00f0ff; --neutral:#6f86c4; --txt:#e8f1ff; --mut:#8fa3d6; }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--txt); overflow: hidden;
-    font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; }
-  #map { position: absolute; inset: 0; background: var(--bg); }
-  .leaflet-container { background: var(--bg); }
-  /* keep real streets readable, just moodier */
-  .leaflet-tile-pane { filter: brightness(1.25) contrast(1.15) saturate(.9); }
-  .leaflet-control-attribution { background: rgba(4,6,12,.75) !important; color: #6b7aa0 !important; font-size: 9px; }
-  .leaflet-control-attribution a { color: #8fa3d6 !important; }
-  .leaflet-control-zoom { display: none; }
-
-  .hud { position: absolute; top: 0; left: 0; right: 0; z-index: 1000; display: flex; justify-content: space-between;
-    align-items: center; padding: max(10px, env(safe-area-inset-top)) 12px 10px; pointer-events: none; }
-  .chip { pointer-events: auto; background: linear-gradient(180deg, #141c38, #0a0f22); border: 2px solid #2a3a6e;
-    border-radius: 18px; padding: 8px 14px; font-weight: 800; display: flex; gap: 8px; align-items: center;
-    box-shadow: 0 4px 0 #050810, 0 0 14px rgba(0,240,255,.25); color: var(--txt); text-decoration: none; }
-  .title { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: #8fe9ff; text-shadow: 0 0 8px var(--you); }
-  #money { font-size: 22px; color: #b6ff4d; text-shadow: 0 0 10px rgba(157,255,0,.7); display: inline-block; }
-  #money.bounce { animation: bounce .6s cubic-bezier(.3,1.9,.4,1); }
-  @keyframes bounce { 0%{transform:scale(1)} 35%{transform:scale(1.5) rotate(-4deg)} 100%{transform:scale(1) rotate(0)} }
-  .float { position: absolute; z-index: 1200; font-weight: 900; font-size: 24px; pointer-events: none;
-    animation: rise 1s ease-out forwards; text-shadow: 0 0 10px currentColor; }
-  @keyframes rise { 0%{transform:translateY(0) scale(.6);opacity:0} 20%{opacity:1;transform:translateY(-10px) scale(1.3)} 100%{transform:translateY(-80px) scale(1);opacity:0} }
-
-  .btn { border: 0; cursor: pointer; font-family: inherit; font-weight: 900; font-size: 17px; letter-spacing: .5px; color: #05121a;
-    padding: 14px 22px; border-radius: 16px; background: linear-gradient(180deg, #5cf6ff, #00c8dc);
-    box-shadow: 0 6px 0 #00707c, 0 0 18px rgba(0,240,255,.55); transition: transform .08s, box-shadow .08s; }
-  .btn:active { transform: translateY(5px); box-shadow: 0 1px 0 #00707c, 0 0 10px rgba(0,240,255,.5); }
-  .btn.gray { background: linear-gradient(180deg, #4a5679, #2c3552); color: #cfd8f5; box-shadow: 0 6px 0 #141a2c; }
-  .btn.gray:active { box-shadow: 0 1px 0 #141a2c; }
-  .btn[disabled] { opacity: .45; pointer-events: none; }
-  .fab { position: absolute; right: 14px; bottom: 150px; z-index: 1000; width: 58px; height: 58px; padding: 0;
-    border-radius: 50%; font-size: 26px; display: grid; place-items: center; }
-
-  #sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1100; padding: 16px 16px max(16px, env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, #121a36, #080c1c); border-top: 3px solid #2a3a6e; border-radius: 26px 26px 0 0;
-    box-shadow: 0 -8px 30px rgba(0,0,0,.6), 0 -2px 22px rgba(0,240,255,.25);
-    transform: translateY(110%); transition: transform .35s cubic-bezier(.3,1.5,.5,1); }
-  #sheet.open { transform: translateY(0); }
+  html, body { margin: 0; height: 100%; background: #05070d; overflow: hidden; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #eef0ff; -webkit-tap-highlight-color: transparent; }
+  #map { position: absolute; inset: 0; }
+  .maplibregl-ctrl-bottom-right, .maplibregl-ctrl-bottom-left { opacity: .45; }
+  #money { position: absolute; z-index: 5; left: 14px; top: 14px; top: calc(14px + env(safe-area-inset-top)); display: flex; gap: 8px; align-items: center; padding: 9px 16px; border-radius: 18px; background: #0b1030; border: 2px solid #2b3a9a; box-shadow: 0 5px 0 #060a22, 0 0 18px rgba(80,110,255,.35); font-weight: 900; }
+  #moneyV { font-size: 24px; color: #b6ff4d; text-shadow: 0 0 10px rgba(157,255,0,.7); display: inline-block; }
+  #moneyV.bounce { animation: gb .6s cubic-bezier(.3,1.9,.4,1); }
+  @keyframes gb { 0%{transform:scale(1)} 35%{transform:scale(1.5) rotate(-4deg)} 100%{transform:scale(1) rotate(0)} }
+  .float { position: absolute; z-index: 30; font-weight: 900; font-size: 26px; pointer-events: none; animation: rise 1s ease-out forwards; text-shadow: 0 0 10px currentColor; }
+  @keyframes rise { from { transform: translateY(0) scale(.8); opacity: 1 } to { transform: translateY(-70px) scale(1.4); opacity: 0 } }
+  #me { position: absolute; z-index: 5; right: 14px; bottom: 24px; bottom: calc(24px + env(safe-area-inset-bottom)); width: 54px; height: 54px; border-radius: 50%; border: 2px solid #2b3a9a; background: #0b1030; box-shadow: 0 5px 0 #060a22, 0 0 18px rgba(80,110,255,.35); color: #8fe3ff; font-size: 24px; cursor: pointer; }
+  #me:active { transform: translateY(3px); box-shadow: 0 2px 0 #060a22; }
+  #hint { position: absolute; z-index: 5; left: 50%; top: 16px; transform: translateX(-50%); padding: 9px 16px; border-radius: 16px; background: #0b1030; border: 2px solid #2b3a9a; font-weight: 800; font-size: 14px; display: none; white-space: nowrap; }
+  #sheet { position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); background: linear-gradient(#10163f, #080b24); border-top: 2px solid #3a4cc9; border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(60,90,255,.35); transform: translateY(110%); transition: transform .35s cubic-bezier(.3,1.5,.5,1); max-width: 520px; margin: 0 auto; }
+  #sheet.open { transform: none; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-  .name { font-size: 16px; font-weight: 900; line-height: 1.2; }
-  .owner { font-size: 13px; font-weight: 800; padding: 3px 10px; border-radius: 999px; border: 2px solid currentColor; white-space: nowrap; text-shadow: 0 0 8px currentColor; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
-  .stat { background: #0a0f22; border: 2px solid #202c55; border-radius: 14px; padding: 8px; text-align: center; }
-  .stat b { display: block; font-size: 18px; }
-  .stat span { font-size: 11px; color: var(--mut); text-transform: uppercase; letter-spacing: 1px; }
-  #hint { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); z-index: 1000; padding: 6px 14px;
-    background: rgba(10,15,34,.85); border: 1px solid #26336a; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--mut); pointer-events: none; }
-  .me { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--you);
-    box-shadow: 0 0 12px var(--you), 0 0 28px var(--you); position: relative; }
-  .me::after { content: ""; position: absolute; inset: -12px; border-radius: 50%; border: 2px solid var(--you); animation: ping 1.8s ease-out infinite; }
-  @keyframes ping { 0%{transform:scale(.5);opacity:.9} 100%{transform:scale(1.8);opacity:0} }
+  #name { font-weight: 900; font-size: 16px; line-height: 1.2; }
+  #owner { font-weight: 900; font-size: 13px; padding: 4px 10px; border-radius: 12px; background: #0b1030; border: 1px solid #2b3a9a; white-space: nowrap; }
+  .stats { display: flex; gap: 10px; margin: 14px 0; }
+  .stat { flex: 1; text-align: center; background: #0b1030; border: 1px solid #25318a; border-radius: 16px; padding: 10px 4px; }
+  .stat b { display: block; font-size: 24px; font-weight: 900; }
+  .stat span { font-size: 11px; font-weight: 700; color: #8c97d8; text-transform: uppercase; letter-spacing: .06em; }
+  .btn { flex: 1; font: inherit; font-weight: 900; font-size: 18px; padding: 15px 16px; border: 0; border-radius: 18px; cursor: pointer; color: #04121a; background: linear-gradient(#6ff5ff, #00c8e8); box-shadow: 0 6px 0 #007a96, 0 0 22px rgba(0,240,255,.45); }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #007a96; }
+  .btn:disabled { background: #2a3066; color: #8c97d8; box-shadow: 0 6px 0 #161a40; cursor: default; }
+  .btn.gray { flex: 0 0 auto; background: #232a66; color: #cfd6ff; box-shadow: 0 6px 0 #121744; }
 </style>
-</head>
-<body>
+</head><body>
 <div id="map"></div>
-
-<div class="hud">
-  <a class="chip" href="index.html" title="Back to the Ghettometer map"><span>🏙️</span><span class="title">Ghettometer</span></a>
-  <div class="chip"><span>💵</span><span id="money">500</span></div>
-</div>
-<div id="hint">Zoom in and tap a glowing spot</div>
-
-<button class="btn gray fab" id="locate" title="Find me">🎯</button>
-
+<div id="money"><span>💵</span><span id="moneyV">1000</span></div>
+<div id="hint"></div>
+<button id="me" aria-label="My location">◎</button>
 <div id="sheet">
-  <div class="row">
-    <div class="name" id="sName">Area</div>
-    <div class="owner" id="sOwner">For sale</div>
-  </div>
+  <div class="row"><div id="name">Block</div><div id="owner">For sale</div></div>
   <div class="stats">
     <div class="stat"><b id="sScore">--</b><span>Meter</span></div>
     <div class="stat"><b id="sPrice">--</b><span>Price</span></div>
     <div class="stat"><b id="sRent">--</b><span>Rent / day</span></div>
   </div>
-  <div class="row">
-    <button class="btn gray" id="sClose" style="flex:0 0 auto">Close</button>
-    <button class="btn" id="sClaim" style="flex:1">Claim it</button>
-  </div>
+  <div class="row"><button class="btn gray" id="close">Close</button><button class="btn" id="claim">Claim it</button></div>
 </div>
-
+<!-- Credits: map data (c) OpenStreetMap contributors, OpenFreeMap / OpenMapTiles. Blocks: US Census TIGERweb. Home values: Census ACS. -->
+<script src="maplibre/maplibre-gl.js"></script>
 <script src="meter_data.js?v=6"></script>
 <script src="names.js?v=1"></script>
 <script>
 (function () {
-  var D = window.METER, KEYS = window.METER_KEYS, N = D.length;
-  function nm(i) { var s = (window.METER_NAMES && window.METER_NAMES[i]) || ""; return s.replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · "); }
+  var D = window.METER || [], KEYS = window.METER_KEYS || [], N = D.length;
+  var BLK = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/2/query";
+  var MINZ = 14, CYAN = "#00f0ff";
+  var $ = function (id) { return document.getElementById(id); };
+  var money = 1000, owned = {};
+  try { var sv = JSON.parse(localStorage.getItem("gm_game2") || "null"); if (sv) { money = sv.money; owned = sv.owned || {}; } } catch (e) {}
+  function save() { try { localStorage.setItem("gm_game2", JSON.stringify({ money: money, owned: owned })); } catch (e) {} }
+  $("moneyV").textContent = money;
 
-  // ---- real Ghettometer score for every area (all layers on, same method as the main map)
-  var SC = new Uint8Array(N);
+  // fixed overall score (rank of the mean of all indicators) + spatial grid for fast lookup
+  var GS = new Uint8Array(N), grid = {};
   (function () {
-    var means = new Float64Array(N);
-    for (var i = 0; i < N; i++) { var s = 0; for (var k = 0; k < KEYS.length; k++) s += D[i][3 + k]; means[i] = s / KEYS.length; }
-    var order = []; for (var j = 0; j < N; j++) order.push(j);
-    order.sort(function (a, b) { return means[a] - means[b]; });
-    for (var r = 0; r < N; r++) SC[order[r]] = Math.round(r / Math.max(N - 1, 1) * 100);
+    var means = new Float64Array(N), i, k, o = [];
+    for (i = 0; i < N; i++) { var s = 0; for (k = 0; k < KEYS.length; k++) s += D[i][3 + k]; means[i] = s / KEYS.length; o.push(i);
+      var g = Math.floor(D[i][0] * 10) + "," + Math.floor(D[i][1] * 10); (grid[g] = grid[g] || []).push(i); }
+    o.sort(function (a, b) { return means[a] - means[b]; });
+    for (i = 0; i < N; i++) GS[o[i]] = Math.round(i / Math.max(N - 1, 1) * 100);
   })();
-  // price = real Census median home value scaled down (1/1000); fall back to score if missing
-  function priceOf(i) { var hv = D[i][26]; return hv ? Math.max(20, Math.round(hv / 1000)) : Math.round(80 + (100 - SC[i]) * 3); }
-  function rentOf(i) { return Math.max(1, Math.round(priceOf(i) * 0.015 * 10) / 10); }
-
-  // ---- state (only what the player claims; no fake rivals)
-  var money = 500, owned = {};
-  try { var sv = JSON.parse(localStorage.getItem("gm_game") || "null"); if (sv) { money = sv.money; owned = sv.owned || {}; } } catch (e) {}
-  function save() { try { localStorage.setItem("gm_game", JSON.stringify({ money: money, owned: owned })); } catch (e) {} }
-
-  // ---- map: real streets on a dark base
-  var map = L.map("map", { preferCanvas: true, zoomSnap: 0.25, minZoom: 4, maxZoom: 18, attributionControl: true });
-  map.setView([34.0556, -117.1825], 12);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    subdomains: "abcd", maxZoom: 20, attribution: "&copy; OpenStreetMap &copy; CARTO"
-  }).addTo(map);
-
-  // ---- glowing areas, drawn on canvas
-  var Glow = L.Layer.extend({
-    onAdd: function (m) {
-      this._map = m; this._c = L.DomUtil.create("canvas", "leaflet-zoom-hide");
-      this._c.style.position = "absolute"; this._c.style.pointerEvents = "none";
-      m.getPanes().overlayPane.appendChild(this._c);
-      m.on("moveend zoomend resize", this.draw, this); this.draw();
-    },
-    onRemove: function (m) { L.DomUtil.remove(this._c); m.off("moveend zoomend resize", this.draw, this); },
-    draw: function () {
-      if (!this._map) return;
-      var m = this._map, size = m.getSize(), tl = m.containerPointToLayerPoint([0, 0]);
-      L.DomUtil.setPosition(this._c, tl); this._c.width = size.x; this._c.height = size.y;
-      var ctx = this._c.getContext("2d"), b = m.getBounds().pad(0.05), z = m.getZoom();
-      var s = b.getSouth(), n = b.getNorth(), w = b.getWest(), e = b.getEast();
-      var vis = [];
-      for (var i = 0; i < N; i++) { var d = D[i]; if (d[0] < s || d[0] > n || d[1] < w || d[1] > e) continue; vis.push(i); }
-      var step = vis.length > 4000 ? Math.ceil(vis.length / 4000) : 1;
-      var fancy = vis.length / step < 1200;
-      var r = Math.min(26, Math.max(3, 1.6 * Math.pow(1.35, z - 8)));
-      ctx.globalCompositeOperation = "lighter";
-      for (var q = 0; q < vis.length; q += step) {
-        var idx = vis[q], p = m.latLngToContainerPoint([D[idx][0], D[idx][1]]), mine = !!owned[idx];
-        var col = mine ? "0,240,255" : "111,134,196";
-        var rr = mine ? r * 1.25 : r;
-        var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rr * (fancy ? 2.6 : 1.8));
-        g.addColorStop(0, "rgba(" + col + "," + (mine ? 0.95 : 0.55) + ")");
-        g.addColorStop(0.35, "rgba(" + col + "," + (mine ? 0.45 : 0.22) + ")");
-        g.addColorStop(1, "rgba(" + col + ",0)");
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, rr * (fancy ? 2.6 : 1.8), 0, 6.2832); ctx.fill();
-        if (fancy) { ctx.lineWidth = mine ? 2.5 : 1.5; ctx.strokeStyle = "rgba(" + col + "," + (mine ? 1 : 0.8) + ")";
-          ctx.beginPath(); ctx.arc(p.x, p.y, rr * 0.55, 0, 6.2832); ctx.stroke(); }
+  function nearest(la, lo) {
+    var cl = Math.cos(la * Math.PI / 180), gy = Math.floor(la * 10), gx = Math.floor(lo * 10);
+    for (var r = 1; r <= 3; r++) {
+      var best = -1, bd = 1e9;
+      for (var y = gy - r; y <= gy + r; y++) for (var x = gx - r; x <= gx + r; x++) {
+        var a = grid[y + "," + x]; if (!a) continue;
+        for (var j = 0; j < a.length; j++) { var d = D[a[j]], dy = d[0] - la, dx = (d[1] - lo) * cl, dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = a[j]; } }
       }
-      ctx.globalCompositeOperation = "source-over";
-      document.getElementById("hint").style.display = z >= 10 ? "none" : "block";
+      if (best >= 0) return best;
     }
-  });
-  var glow = new Glow(); glow.addTo(map);
-
-  // ---- tap to select
-  var sel = -1, sheet = document.getElementById("sheet");
-  function nearestTo(pt) {
-    var best = -1, bd = 1e9, m = map, b = m.getBounds().pad(0.05);
-    for (var i = 0; i < N; i++) {
-      var d = D[i]; if (d[0] < b.getSouth() || d[0] > b.getNorth() || d[1] < b.getWest() || d[1] > b.getEast()) continue;
-      var p = m.latLngToContainerPoint([d[0], d[1]]), dx = p.x - pt.x, dy = p.y - pt.y, dd = dx * dx + dy * dy;
-      if (dd < bd) { bd = dd; best = i; }
-    }
-    return bd <= 40 * 40 ? best : -1;
+    return -1;
   }
-  function show(i) {
-    sel = i;
-    document.getElementById("sName").textContent = nm(i) || "Area";
-    var mine = !!owned[i], o = document.getElementById("sOwner");
-    o.textContent = mine ? "You" : "For sale"; o.style.color = mine ? "#00f0ff" : "#8fa3d6";
-    document.getElementById("sScore").textContent = SC[i];
-    document.getElementById("sPrice").textContent = "$" + priceOf(i);
-    document.getElementById("sRent").textContent = "$" + rentOf(i);
-    var c = document.getElementById("sClaim");
+  // nice = teal, middle = violet, worst = hot pink
+  var RAMP = [[25, 240, 200], [122, 92, 255], [255, 46, 147]];
+  function col(v) { var t = v / 50, i = Math.min(Math.floor(t), 1), f = t - i, a = RAMP[i], c = RAMP[i + 1];
+    return "rgb(" + Math.round(a[0] + (c[0] - a[0]) * f) + "," + Math.round(a[1] + (c[1] - a[1]) * f) + "," + Math.round(a[2] + (c[2] - a[2]) * f) + ")"; }
+  function priceOf(b) { var hv = b.idx >= 0 ? D[b.idx][26] : 0; return Math.max(20, Math.round(hv ? hv / 1000 : 150)); }
+  function rentOf(b) { return Math.max(1, Math.round(priceOf(b) * 0.015 * 10) / 10); }
+  function nm(i) { return (window.METER_NAMES && window.METER_NAMES[i]) || ""; }
+
+  // game-style base map (Ingress dark + Pokemon Go simple): few colors, readable streets, few labels
+  var KEEP = /^(label_city|label_city_capital|label_town|label_village|label_state|highway-name-major|highway-name-minor)$/;
+  function gameStyle(style) {
+    style.layers.forEach(function (l) {
+      var id = l.id, t = l.type; l.paint = l.paint || {}; l.layout = l.layout || {};
+      if (t === "background") l.paint["background-color"] = "#05070d";
+      else if (id === "natural_earth") l.layout.visibility = "none";
+      else if (t === "fill" && id === "building") l.paint["fill-color"] = "#18204a";
+      else if (t === "fill" && /^water$/.test(id)) l.paint["fill-color"] = "#0a2a6b";
+      else if (t === "fill" && /^(park|landcover_wood|landcover_grass|landuse_pitch)$/.test(id)) l.paint["fill-color"] = "#0b2f2c";
+      else if (t === "fill") l.paint["fill-color"] = "#0a0f22";
+      else if (t === "line" && /waterway/.test(id)) l.paint["line-color"] = "#0a2a6b";
+      else if (t === "line" && /rail|boundary|aeroway|park_outline/.test(id)) l.layout.visibility = "none";
+      else if (t === "line" && /_casing$/.test(id)) l.paint["line-color"] = "#05070d";
+      else if (t === "line") l.paint["line-color"] = "#8a9bff";
+      else if (t === "fill-extrusion") {
+        l.paint["fill-extrusion-color"] = ["interpolate", ["linear"], ["get", "render_height"], 0, "#1b2566", 40, "#2e3f9e", 150, "#5a70e0"];
+        l.paint["fill-extrusion-opacity"] = 0.5;
+        l.paint["fill-extrusion-height"] = ["*", 1.2, ["get", "render_height"]];
+        l.paint["fill-extrusion-base"] = ["*", 1.2, ["get", "render_min_height"]];
+      }
+      else if (t === "symbol") {
+        if (KEEP.test(id)) { l.paint["text-color"] = "#c8d2ff"; l.paint["text-halo-color"] = "#05070d"; l.paint["text-halo-width"] = 1.6; }
+        else l.layout.visibility = "none";
+      }
+    });
+    return style;
+  }
+
+  var map, blocks = {}, count = 0, selKey = null, seq = 0, tmr = null, ready = false;
+  var FALLBACK = [-118.2437, 34.0522];
+
+  fetch("https://tiles.openfreemap.org/styles/liberty").then(function (r) { return r.json(); }).then(function (style) {
+    style = gameStyle(style);
+    map = new maplibregl.Map({ container: "map", style: style, center: FALLBACK, zoom: 16.2, pitch: 55, bearing: -17, maxPitch: 70, maxZoom: 19.5, attributionControl: { compact: true } });
+    window.__gmap = map;
+    map.on("load", function () {
+      map.addSource("gb", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      // block fill sits under the street lines so streets stay readable
+      var firstRoad; map.getStyle().layers.some(function (l) { if (l.type === "line" && l["source-layer"] === "transportation") { firstRoad = l.id; return true; } });
+      var bld3 = map.getLayer("building-3d") ? "building-3d" : undefined;
+      map.addLayer({ id: "gb-fill", type: "fill", source: "gb", paint: { "fill-color": ["get", "col"], "fill-opacity": ["case", ["==", ["get", "own"], 1], 0.6, 0.5] } }, firstRoad);
+      map.addLayer({ id: "gb-line", type: "line", source: "gb", paint: { "line-color": ["get", "col"], "line-width": ["case", ["==", ["get", "own"], 1], 2.5, 1.3], "line-opacity": 0.95 } }, bld3);
+      map.addLayer({ id: "gb-glow", type: "line", source: "gb", filter: ["==", ["get", "own"], 1], paint: { "line-color": CYAN, "line-width": 14, "line-blur": 10, "line-opacity": 0.95 } }, bld3);
+      map.addLayer({ id: "gb-own3d", type: "fill-extrusion", source: "gb", filter: ["==", ["get", "own"], 1], paint: { "fill-extrusion-color": CYAN, "fill-extrusion-height": 28, "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.55 } }, bld3);
+      map.addLayer({ id: "gb-sel", type: "line", source: "gb", filter: ["==", ["get", "key"], ""], paint: { "line-color": "#ffffff", "line-width": 3.5 } });
+      map.on("click", function (e) {
+        var f = map.queryRenderedFeatures(e.point, { layers: ["gb-fill", "gb-own3d"] });
+        if (f.length) select(f[0].properties.key);
+      });
+      map.on("mouseenter", "gb-fill", function () { map.getCanvas().style.cursor = "pointer"; });
+      map.on("mouseleave", "gb-fill", function () { map.getCanvas().style.cursor = ""; });
+      map.on("moveend", later);
+      ready = true; locate(true); later();
+    });
+  });
+
+  // blocks
+  function hint(t) { var h = $("hint"); h.textContent = t; h.style.display = t ? "block" : "none"; }
+  function push() {
+    var feats = [];
+    Object.keys(blocks).forEach(function (k) { var b = blocks[k], mine = !!owned[k];
+      feats.push({ type: "Feature", properties: { key: k, own: mine ? 1 : 0, col: mine ? CYAN : col(b.score) }, geometry: b.f.geometry }); });
+    map.getSource("gb").setData({ type: "FeatureCollection", features: feats });
+  }
+  function later() { clearTimeout(tmr); tmr = setTimeout(load, 300); }
+  function load() {
+    if (!ready) return;
+    if (map.getZoom() < MINZ) { hint("Zoom in to see the blocks"); return; }
+    hint("");
+    if (count > 6000) { Object.keys(blocks).forEach(function (k) { if (!owned[k]) { delete blocks[k]; count--; } }); }
+    var b = map.getBounds(), my = ++seq;
+    var q = BLK + "?where=1%3D1&geometry=" + [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(",") +
+      "&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=GEOID,POP100,INTPTLAT,INTPTLON" +
+      "&returnGeometry=true&outSR=4326&geometryPrecision=5&f=geojson&resultRecordCount=3000";
+    fetch(q).then(function (r) { return r.json(); }).then(function (j) {
+      if (my !== seq || !j || !j.features) return;
+      j.features.forEach(function (f) {
+        var p = f.properties || {}, key = p.GEOID; if (!key || blocks[key]) return;
+        var idx = nearest(+p.INTPTLAT, +p.INTPTLON);
+        blocks[key] = { f: f, idx: idx, score: idx >= 0 ? GS[idx] : 50 }; count++;
+      });
+      push();
+    }).catch(function () { hint("Could not load blocks. Move the map to retry."); });
+  }
+
+  // sheet / claim
+  function select(key) {
+    selKey = key; var b = blocks[key]; if (!b) return;
+    map.setFilter("gb-sel", ["==", ["get", "key"], key]);
+    var mine = !!owned[key], o = $("owner");
+    $("name").textContent = (b.idx >= 0 ? nm(b.idx).replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · ") : "Block") + "  ·  Block " + key.slice(-4);
+    o.textContent = mine ? "You" : "For sale"; o.style.color = mine ? CYAN : "#9aa3d6";
+    $("sScore").textContent = b.score; $("sPrice").textContent = "$" + priceOf(b); $("sRent").textContent = "$" + rentOf(b);
+    var c = $("claim");
     if (mine) { c.textContent = "Yours!"; c.disabled = true; }
-    else if (money < priceOf(i)) { c.textContent = "Need $" + (priceOf(i) - money) + " more"; c.disabled = true; }
-    else { c.textContent = "Claim it  $" + priceOf(i); c.disabled = false; }
-    sheet.classList.add("open");
+    else if (money < priceOf(b)) { c.textContent = "Need $" + (priceOf(b) - money) + " more"; c.disabled = true; }
+    else { c.textContent = "Claim it  $" + priceOf(b); c.disabled = false; }
+    $("sheet").classList.add("open");
   }
-  map.on("click", function (e) {
-    var i = nearestTo(map.latLngToContainerPoint(e.latlng));
-    if (i >= 0) show(i); else { sheet.classList.remove("open"); sel = -1; }
-  });
-  document.getElementById("sClose").onclick = function () { sheet.classList.remove("open"); sel = -1; };
-
-  // ---- money
-  var moneyEl = document.getElementById("money"); moneyEl.textContent = money;
+  window.__select = select;
+  $("close").onclick = function () { $("sheet").classList.remove("open"); selKey = null; map.setFilter("gb-sel", ["==", ["get", "key"], ""]); };
   function setMoney(v, delta, at) {
-    money = v; moneyEl.textContent = money; save();
-    moneyEl.classList.remove("bounce"); void moneyEl.offsetWidth; moneyEl.classList.add("bounce");
-    if (delta) {
-      var f = document.createElement("div"); f.className = "float"; f.textContent = (delta > 0 ? "+" : "-") + "$" + Math.abs(delta);
-      f.style.color = delta > 0 ? "#b6ff4d" : "#ff6b8a";
-      f.style.left = ((at && at.x) || innerWidth / 2) + "px"; f.style.top = ((at && at.y) || innerHeight / 2) + "px";
-      document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1000);
-    }
+    money = v; $("moneyV").textContent = money; save();
+    var m = $("moneyV"); m.classList.remove("bounce"); void m.offsetWidth; m.classList.add("bounce");
+    if (delta) { var f = document.createElement("div"); f.className = "float"; f.textContent = (delta > 0 ? "+" : "-") + "$" + Math.abs(delta);
+      f.style.color = delta > 0 ? "#b6ff4d" : "#ff6b8a"; f.style.left = ((at && at.x) || innerWidth / 2) + "px"; f.style.top = ((at && at.y) || innerHeight / 2) + "px";
+      document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1000); }
   }
-  document.getElementById("sClaim").onclick = function () {
-    if (sel < 0 || owned[sel] || money < priceOf(sel)) return;
-    var at = map.latLngToContainerPoint([D[sel][0], D[sel][1]]), cost = priceOf(sel);
-    owned[sel] = 1; setMoney(money - cost, -cost, at); glow.draw(); show(sel);
+  $("claim").onclick = function () {
+    var b = blocks[selKey]; if (!b || owned[selKey] || money < priceOf(b)) return;
+    var cost = priceOf(b), p = b.f.properties, pr = map.project([+p.INTPTLON, +p.INTPTLAT]);
+    owned[selKey] = 1; setMoney(money - cost, -cost, { x: pr.x, y: pr.y }); push(); select(selKey);
   };
 
-  // ---- player dot + locate
-  var me = L.marker([34.0556, -117.1825], { icon: L.divIcon({ className: "", html: '<div class="me"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }),
-    zIndexOffset: 1000, interactive: false }).addTo(map);
-  var first = true;
-  map.on("locationfound", function (e) { me.setLatLng(e.latlng); if (first) { first = false; map.setView(e.latlng, 13); } });
-  map.on("locationerror", function () {});
-  map.locate({ watch: true, enableHighAccuracy: true, setView: false });
-  document.getElementById("locate").onclick = function () { map.setView(me.getLatLng(), 14, { animate: true }); };
+  // my location dot
+  var dot = null;
+  function locate(initial) {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      var ll = [pos.coords.longitude, pos.coords.latitude];
+      if (!dot) { var el = document.createElement("div"); el.style.cssText = "width:18px;height:18px;border-radius:50%;background:#fff;border:3px solid #00f0ff;box-shadow:0 0 14px 6px rgba(0,240,255,.7)"; dot = new maplibregl.Marker({ element: el }).setLngLat(ll).addTo(map); }
+      else dot.setLngLat(ll);
+      map.easeTo({ center: ll, zoom: Math.max(map.getZoom(), 16), duration: initial ? 0 : 900 });
+    }, function () { if (!initial) { hint("Location is off for this site"); setTimeout(function () { hint(""); }, 3000); } }, { timeout: 8000, enableHighAccuracy: true });
+  }
+  $("me").onclick = function () { locate(false); };
 })();
 </script>
-</body>
-</html>
+</body></html>

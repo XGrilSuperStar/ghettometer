@@ -14,7 +14,7 @@ const cache = new Map(); // gzip once, serve many
 
 http.createServer((req, res) => {
   let p = decodeURIComponent(req.url.split("?")[0]);
-  if (p === "/") p = "/index.html";
+  if (p === "/") p = "/game.html";
   const file = path.normalize(path.join(ROOT, p));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end("Forbidden"); }
   fs.stat(file, (err, st) => {
