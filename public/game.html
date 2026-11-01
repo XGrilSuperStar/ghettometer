@@ -63,9 +63,9 @@
   var BLK = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/2/query";
   var MINZ = 14, CYAN = "#00f0ff";
   var $ = function (id) { return document.getElementById(id); };
-  var money = 1000, owned = {};
-  try { var sv = JSON.parse(localStorage.getItem("gm_game2") || "null"); if (sv) { money = sv.money; owned = sv.owned || {}; } } catch (e) {}
-  function save() { try { localStorage.setItem("gm_game2", JSON.stringify({ money: money, owned: owned })); } catch (e) {} }
+  var money = 1000, owned = {}, ownedB = {}, selBld = null;
+  try { var sv = JSON.parse(localStorage.getItem("gm_game2") || "null"); if (sv) { money = sv.money; owned = sv.owned || {}; ownedB = sv.b || {}; } } catch (e) {}
+  function save() { try { localStorage.setItem("gm_game2", JSON.stringify({ money: money, owned: owned, b: ownedB })); } catch (e) {} }
   $("moneyV").textContent = money;
 
   // fixed overall score (rank of the mean of all indicators) + spatial grid for fast lookup
@@ -142,10 +142,18 @@
       map.addLayer({ id: "gb-line", type: "line", source: "gb", paint: { "line-color": ["get", "col"], "line-width": ["case", ["==", ["get", "own"], 1], 2.5, 1.3], "line-opacity": 0.95 } }, bld3);
       map.addLayer({ id: "gb-glow", type: "line", source: "gb", filter: ["==", ["get", "own"], 1], paint: { "line-color": CYAN, "line-width": 14, "line-blur": 10, "line-opacity": 0.95 } }, bld3);
       map.addLayer({ id: "gb-own3d", type: "fill-extrusion", source: "gb", filter: ["==", ["get", "own"], 1], paint: { "fill-extrusion-color": CYAN, "fill-extrusion-height": 28, "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.55 } }, bld3);
+      map.addSource("ob", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "ob-3d", type: "fill-extrusion", source: "ob", paint: { "fill-extrusion-color": CYAN, "fill-extrusion-height": ["*", 1.6, ["get", "h"]], "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.85 } });
+      map.addLayer({ id: "ob-glow", type: "line", source: "ob", paint: { "line-color": CYAN, "line-width": 10, "line-blur": 8, "line-opacity": 0.95 } });
+      map.addSource("bs", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "bs-line", type: "line", source: "bs", paint: { "line-color": "#ffffff", "line-width": 3.5 } });
+      pushB();
       map.addLayer({ id: "gb-sel", type: "line", source: "gb", filter: ["==", ["get", "key"], ""], paint: { "line-color": "#ffffff", "line-width": 3.5 } });
       map.on("click", function (e) {
+        var bf = map.queryRenderedFeatures(e.point, { layers: ["ob-3d", "building-3d"] });
         var f = map.queryRenderedFeatures(e.point, { layers: ["gb-fill", "gb-own3d"] });
-        if (f.length) select(f[0].properties.key, e.lngLat);
+        if (bf.length) selB(bf[0], e.lngLat, f.length ? f[0].properties.key : null);
+        else if (f.length) select(f[0].properties.key, e.lngLat);
       });
       map.on("mouseenter", "gb-fill", function () { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "gb-fill", function () { map.getCanvas().style.cursor = ""; });
@@ -184,6 +192,43 @@
     }).catch(function () { hint("Could not load blocks. Move the map to retry."); });
   }
 
+  // individual buildings
+  function ringsOf(g) { return g.type === "Polygon" ? [g.coordinates[0]] : g.coordinates.map(function (r) { return r[0]; }); }
+  function centroid(g) { var r = ringsOf(g)[0], x = 0, y = 0; r.forEach(function (c) { x += c[0]; y += c[1]; }); return [x / r.length, y / r.length]; }
+  function pushB() {
+    var feats = Object.keys(ownedB).map(function (k) { var o = ownedB[k]; return { type: "Feature", properties: { key: k, h: o.h }, geometry: o.g }; });
+    map.getSource("ob").setData({ type: "FeatureCollection", features: feats });
+  }
+  function selB(f, ll, blockKey) {
+    var g = f.geometry, c = centroid(g), h = +f.properties.render_height || 8;
+    var key = "b" + (f.id !== undefined && f.id !== null ? f.id : Math.round(c[1] * 1e5) + "," + Math.round(c[0] * 1e5));
+    if (f.properties.key && ownedB[f.properties.key]) { key = f.properties.key; }
+    var blk = blockKey && blocks[blockKey], idx = blk ? blk.idx : nearest(c[1], c[0]);
+    var base = Math.max(20, Math.round((idx >= 0 && D[idx][26] ? D[idx][26] / 1000 : 150) * (0.6 + Math.min(h, 120) / 60)));
+    var score = idx >= 0 ? GS[idx] : 50, own = !!ownedB[key];
+    var near = placesFor({ f: { geometry: g } }, { lng: c[0], lat: c[1] }).filter(function (x) { return x.d < 40 || true; });
+    var tract = idx >= 0 ? nm(idx).replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · ") : "";
+    selKey = null; selBld = { key: key, g: ownedB[key] ? ownedB[key].g : g, h: h, price: base, rent: Math.max(1, Math.round(base * 0.015 * 10) / 10), score: score };
+    map.setFilter("gb-sel", ["==", ["get", "key"], ""]);
+    map.getSource("bs").setData({ type: "Feature", properties: {}, geometry: selBld.g });
+    $("name").textContent = near.length ? near[0].n : (h > 25 ? "Tall building" : "Building");
+    $("kind").textContent = (near.length && near[0].k ? near[0].k + " · " : "") + "about " + Math.max(1, Math.round(h / 3.5)) + " floors";
+    $("places").textContent = (near.length > 1 ? "Also here: " + near.slice(1, 4).map(function (x) { return x.n; }).join(", ") + "  ·  " : "") + tract;
+    var o = $("owner"); o.textContent = own ? "You" : "For sale"; o.style.color = own ? CYAN : "#9aa3d6";
+    $("sScore").textContent = score; $("sPrice").textContent = "$" + base; $("sRent").textContent = "$" + selBld.rent;
+    var cl = $("claim");
+    if (own) { cl.textContent = "Yours!"; cl.disabled = true; }
+    else if (money < base) { cl.textContent = "Need $" + (base - money) + " more"; cl.disabled = true; }
+    else { cl.textContent = "Buy it  $" + base; cl.disabled = false; }
+    setGauge(score); $("sheet").classList.add("open");
+  }
+  function buyB() {
+    var b = selBld; if (!b || ownedB[b.key] || money < b.price) return;
+    var c = centroid(b.g), pr = map.project(c);
+    ownedB[b.key] = { g: b.g, h: b.h }; setMoney(money - b.price, -b.price, { x: pr.x, y: pr.y }); pushB();
+    $("owner").textContent = "You"; $("owner").style.color = CYAN; $("claim").textContent = "Yours!"; $("claim").disabled = true;
+  }
+
   // sheet / claim
   var lastLL = null;
   function inRing(pt, ring) { var x = pt[0], y = pt[1], c = false; for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) { var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
@@ -204,7 +249,7 @@
   }
   function select(key, ll) {
     if (ll) lastLL = ll; else if (!lastLL) { var pp = blocks[key] && blocks[key].f.properties; lastLL = pp ? { lng: +pp.INTPTLON, lat: +pp.INTPTLAT } : map.getCenter(); }
-    selKey = key; var b = blocks[key]; if (!b) return;
+    selKey = key; selBld = null; map.getSource("bs").setData({ type: "FeatureCollection", features: [] }); var b = blocks[key]; if (!b) return;
     map.setFilter("gb-sel", ["==", ["get", "key"], key]);
     var mine = !!owned[key], o = $("owner");
     var tract = (b.idx >= 0 ? nm(b.idx).replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · ") : "Block") + "  ·  Block " + key.slice(-4);
@@ -220,7 +265,7 @@
     setGauge(b.score); $("sheet").classList.add("open");
   }
   window.__select = select;
-  $("close").onclick = function () { $("sheet").classList.remove("open"); selKey = null; map.setFilter("gb-sel", ["==", ["get", "key"], ""]); centerScore(); };
+  $("close").onclick = function () { selBld = null; map.getSource("bs").setData({ type: "FeatureCollection", features: [] }); $("sheet").classList.remove("open"); selKey = null; map.setFilter("gb-sel", ["==", ["get", "key"], ""]); centerScore(); };
   function setMoney(v, delta, at) {
     money = v; $("moneyV").textContent = money; save();
     var m = $("moneyV"); m.classList.remove("bounce"); void m.offsetWidth; m.classList.add("bounce");
@@ -229,6 +274,7 @@
       document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1000); }
   }
   $("claim").onclick = function () {
+    if (selBld) { buyB(); return; }
     var b = blocks[selKey]; if (!b || owned[selKey] || money < priceOf(b)) return;
     var cost = priceOf(b), p = b.f.properties, pr = map.project([+p.INTPTLON, +p.INTPTLAT]);
     owned[selKey] = 1; setMoney(money - cost, -cost, { x: pr.x, y: pr.y }); push(); select(selKey);
