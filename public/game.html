@@ -25,6 +25,8 @@
   #sheet.open { transform: none; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   #name { font-weight: 900; font-size: 16px; line-height: 1.2; }
+  #kind { font-size: 13px; font-weight: 800; color: #19f0c8; margin-top: 4px; text-transform: capitalize; }
+  #places { font-size: 12px; color: #8c97d8; margin-top: 4px; line-height: 1.4; }
   #owner { font-weight: 900; font-size: 13px; padding: 4px 10px; border-radius: 12px; background: #0b1030; border: 1px solid #2b3a9a; white-space: nowrap; }
   .stats { display: flex; gap: 10px; margin: 14px 0; }
   .stat { flex: 1; text-align: center; background: #0b1030; border: 1px solid #25318a; border-radius: 16px; padding: 10px 4px; }
@@ -43,6 +45,7 @@
 <button id="me" aria-label="My location">◎</button>
 <div id="sheet">
   <div class="row"><div id="name">Block</div><div id="owner">For sale</div></div>
+  <div id="kind"></div><div id="places"></div>
   <div class="stats">
     <div class="stat"><b id="sScore">--</b><span>Meter</span></div>
     <div class="stat"><b id="sPrice">--</b><span>Price</span></div>
@@ -142,7 +145,7 @@
       map.addLayer({ id: "gb-sel", type: "line", source: "gb", filter: ["==", ["get", "key"], ""], paint: { "line-color": "#ffffff", "line-width": 3.5 } });
       map.on("click", function (e) {
         var f = map.queryRenderedFeatures(e.point, { layers: ["gb-fill", "gb-own3d"] });
-        if (f.length) select(f[0].properties.key);
+        if (f.length) select(f[0].properties.key, e.lngLat);
       });
       map.on("mouseenter", "gb-fill", function () { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "gb-fill", function () { map.getCanvas().style.cursor = ""; });
@@ -182,11 +185,32 @@
   }
 
   // sheet / claim
-  function select(key) {
+  var lastLL = null;
+  function inRing(pt, ring) { var x = pt[0], y = pt[1], c = false; for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) { var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+  function inGeom(pt, g) { var polys = g.type === "Polygon" ? [g.coordinates] : g.coordinates; return polys.some(function (r) { return inRing(pt, r[0]); }); }
+  function pretty(f) { var p = f.properties, k = (p.subclass || p.class || "").replace(/_/g, " "); return k; }
+  function placesFor(b, ll) {
+    var seen = {}, list = [];
+    try {
+      map.querySourceFeatures("openmaptiles", { sourceLayer: "poi" }).forEach(function (f) {
+        var p = f.properties, n = p.name || p["name:latin"]; if (!n || !f.geometry || f.geometry.type !== "Point") return;
+        var c = f.geometry.coordinates, id = n + c[0].toFixed(5); if (seen[id]) return; seen[id] = 1;
+        var dx = (c[0] - ll.lng) * Math.cos(ll.lat * Math.PI / 180) * 111320, dy = (c[1] - ll.lat) * 111320, d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 60 || inGeom(c, b.f.geometry)) list.push({ n: n, k: pretty(f), d: d });
+      });
+    } catch (e) {}
+    list.sort(function (a, b) { return a.d - b.d; });
+    return list;
+  }
+  function select(key, ll) {
+    if (ll) lastLL = ll; else if (!lastLL) { var pp = blocks[key] && blocks[key].f.properties; lastLL = pp ? { lng: +pp.INTPTLON, lat: +pp.INTPTLAT } : map.getCenter(); }
     selKey = key; var b = blocks[key]; if (!b) return;
     map.setFilter("gb-sel", ["==", ["get", "key"], key]);
     var mine = !!owned[key], o = $("owner");
-    $("name").textContent = (b.idx >= 0 ? nm(b.idx).replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · ") : "Block") + "  ·  Block " + key.slice(-4);
+    var tract = (b.idx >= 0 ? nm(b.idx).replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · ") : "Block") + "  ·  Block " + key.slice(-4);
+    var pl = placesFor(b, lastLL);
+    if (pl.length) { $("name").textContent = pl[0].n; $("kind").textContent = pl[0].k || "place"; $("places").textContent = (pl.length > 1 ? "Also here: " + pl.slice(1, 5).map(function (x) { return x.n; }).join(", ") + "  ·  " : "") + tract; }
+    else { $("name").textContent = "Unnamed block"; $("kind").textContent = ""; $("places").textContent = tract; }
     o.textContent = mine ? "You" : "For sale"; o.style.color = mine ? CYAN : "#9aa3d6";
     $("sScore").textContent = b.score; $("sPrice").textContent = "$" + priceOf(b); $("sRent").textContent = "$" + rentOf(b);
     var c = $("claim");
