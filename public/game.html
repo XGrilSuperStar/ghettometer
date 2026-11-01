@@ -129,9 +129,11 @@
   var map, blocks = {}, count = 0, selKey = null, seq = 0, tmr = null, ready = false;
   var FALLBACK = [-118.2437, 34.0522];
 
-  fetch("https://tiles.openfreemap.org/styles/liberty").then(function (r) { return r.json(); }).then(function (style) {
+  function getPos() { return new Promise(function (ok) { if (!navigator.geolocation) return ok(null); navigator.geolocation.getCurrentPosition(function (p) { ok([p.coords.longitude, p.coords.latitude]); }, function () { ok(null); }, { timeout: 7000, enableHighAccuracy: true }); }); }
+  Promise.all([fetch("https://tiles.openfreemap.org/styles/liberty").then(function (r) { return r.json(); }), getPos()]).then(function (res) {
+    var style = res[0], startLL = res[1];
     style = gameStyle(style);
-    map = new maplibregl.Map({ container: "map", style: style, center: FALLBACK, zoom: 16.2, pitch: 62, bearing: -17, maxPitch: 70, maxZoom: 19.5, attributionControl: { compact: true } });
+    map = new maplibregl.Map({ container: "map", style: style, center: startLL || FALLBACK, zoom: 16.6, pitch: 62, bearing: -17, maxPitch: 70, maxZoom: 19.5, attributionControl: { compact: true } });
     window.__gmap = map;
     map.on("load", function () {
       map.addSource("gb", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
@@ -160,7 +162,7 @@
       map.on("mouseleave", "gb-fill", function () { map.getCanvas().style.cursor = ""; });
       map.setLight({ anchor: "viewport", position: [1.4, 200, 50], intensity: 0.7, color: "#ffffff" });
       map.on("moveend", later); map.on("moveend", centerScore);
-      ready = true; locate(true); later(); centerScore();
+      ready = true; if (!startLL) { hint("Turn on location to start where you are"); setTimeout(function () { hint(""); }, 5000); } else locate(true); later(); centerScore();
     });
   });
 
