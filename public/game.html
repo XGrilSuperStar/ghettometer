@@ -146,6 +146,7 @@
       map.addLayer({ id: "ob-3d", type: "fill-extrusion", source: "ob", paint: { "fill-extrusion-color": CYAN, "fill-extrusion-height": ["*", 1.6, ["get", "h"]], "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.85 } });
       map.addLayer({ id: "ob-glow", type: "line", source: "ob", paint: { "line-color": CYAN, "line-width": 10, "line-blur": 8, "line-opacity": 0.95 } });
       map.addSource("bs", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "bs-3d", type: "fill-extrusion", source: "bs", paint: { "fill-extrusion-color": "#ffffff", "fill-extrusion-height": ["*", 1.6, ["get", "h"]], "fill-extrusion-base": ["*", 1.6, ["get", "m"]], "fill-extrusion-opacity": 0.6 } });
       map.addLayer({ id: "bs-line", type: "line", source: "bs", paint: { "line-color": "#ffffff", "line-width": 3.5 } });
       pushB();
       map.addLayer({ id: "gb-sel", type: "line", source: "gb", filter: ["==", ["get", "key"], ""], paint: { "line-color": "#ffffff", "line-width": 3.5 } });
@@ -200,17 +201,22 @@
     map.getSource("ob").setData({ type: "FeatureCollection", features: feats });
   }
   function selB(f, ll, blockKey) {
-    var g = f.geometry, c = centroid(g), h = +f.properties.render_height || 8;
+    var g = f.geometry, mh = +f.properties.render_min_height || 0;
+    if (f.id !== undefined && f.id !== null) {
+      try { var parts = map.querySourceFeatures("openmaptiles", { sourceLayer: "building" }).filter(function (x) { return x.id === f.id && x.geometry; });
+        if (parts.length > 1) { var polys = []; parts.forEach(function (x) { (x.geometry.type === "Polygon" ? [x.geometry.coordinates] : x.geometry.coordinates).forEach(function (pl) { polys.push(pl); }); }); g = { type: "MultiPolygon", coordinates: polys }; } } catch (e) {}
+    }
+    var c = centroid(g), h = +f.properties.render_height || 8;
     var key = "b" + (f.id !== undefined && f.id !== null ? f.id : Math.round(c[1] * 1e5) + "," + Math.round(c[0] * 1e5));
     if (f.properties.key && ownedB[f.properties.key]) { key = f.properties.key; }
     var blk = blockKey && blocks[blockKey], idx = blk ? blk.idx : nearest(c[1], c[0]);
     var base = Math.max(20, Math.round((idx >= 0 && D[idx][26] ? D[idx][26] / 1000 : 150) * (0.6 + Math.min(h, 120) / 60)));
     var score = idx >= 0 ? GS[idx] : 50, own = !!ownedB[key];
-    var near = placesFor({ f: { geometry: g } }, { lng: c[0], lat: c[1] }).filter(function (x) { return x.d < 40 || true; });
+    var near = placesFor({ f: { geometry: g } }, { lng: c[0], lat: c[1] }).filter(function (x) { return (x.ins || x.d < 12) && !/bus|stop|platform|stand|parking|bench/i.test(x.k); });
     var tract = idx >= 0 ? nm(idx).replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · ") : "";
     selKey = null; selBld = { key: key, g: ownedB[key] ? ownedB[key].g : g, h: h, price: base, rent: Math.max(1, Math.round(base * 0.015 * 10) / 10), score: score };
     map.setFilter("gb-sel", ["==", ["get", "key"], ""]);
-    map.getSource("bs").setData({ type: "Feature", properties: {}, geometry: selBld.g });
+    map.getSource("bs").setData({ type: "Feature", properties: { h: h, m: mh }, geometry: selBld.g });
     $("name").textContent = near.length ? near[0].n : (h > 25 ? "Tall building" : "Building");
     $("kind").textContent = (near.length && near[0].k ? near[0].k + " · " : "") + "about " + Math.max(1, Math.round(h / 3.5)) + " floors";
     $("places").textContent = (near.length > 1 ? "Also here: " + near.slice(1, 4).map(function (x) { return x.n; }).join(", ") + "  ·  " : "") + tract;
@@ -241,7 +247,7 @@
         var p = f.properties, n = p.name || p["name:latin"]; if (!n || !f.geometry || f.geometry.type !== "Point") return;
         var c = f.geometry.coordinates, id = n + c[0].toFixed(5); if (seen[id]) return; seen[id] = 1;
         var dx = (c[0] - ll.lng) * Math.cos(ll.lat * Math.PI / 180) * 111320, dy = (c[1] - ll.lat) * 111320, d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 60 || inGeom(c, b.f.geometry)) list.push({ n: n, k: pretty(f), d: d });
+        var ins = inGeom(c, b.f.geometry); if (d < 60 || ins) list.push({ n: n, k: pretty(f), d: d, ins: ins });
       });
     } catch (e) {}
     list.sort(function (a, b) { return a.d - b.d; });
