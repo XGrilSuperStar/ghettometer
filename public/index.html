@@ -76,7 +76,6 @@
   #gameBtn { background: linear-gradient(180deg,#5cf6ff,#00c8dc) !important; color: #05121a !important; font-weight: 900; border: 0 !important; box-shadow: 0 3px 0 #00707c; }
   body.game #gameBtn { background: linear-gradient(180deg,#ff7be9,#e010bd) !important; color: #fff !important; box-shadow: 0 3px 0 #7a0a66; }
   body.game #panel, body.game #meter { display: none !important; }
-  body.game .leaflet-tile-pane { filter: brightness(1.3) contrast(1.15) !important; }
   #gMoney { position: absolute; z-index: 1000; left: 12px; bottom: 52px; display: none; padding: 8px 14px; font-weight: 800; gap: 8px; align-items: center;
     background: linear-gradient(180deg,#141c38,#0a0f22); border: 2px solid #2a3a6e; border-radius: 18px; box-shadow: 0 4px 0 #050810, 0 0 14px rgba(0,240,255,.25); }
   body.game #gMoney { display: flex; }
@@ -187,7 +186,7 @@
 </div>
 <div id="sitelinks"><a href="about.html">About</a> · <a href="how-it-works.html">How it works</a> · <a href="faq.html">FAQ</a> · <a href="contact.html">Contact</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <span>&copy; 2026 Ghettometer</span></div>
 <div id="zoomhint" class="card"></div>
-<div id="gMoney"><span>💵</span><span id="gMoneyV">500</span></div>
+<div id="gMoney"><span>💵</span><span id="gMoneyV">1000</span></div>
 <div id="gHint" class="card"></div>
 <div id="gSheet">
   <div class="gr"><div id="gName">Block</div><div id="gOwner">For sale</div></div>
@@ -617,7 +616,7 @@
   (function () {
     var BLK = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/2/query";
     var MINZ_G = 14, on = false, blocks = {}, count = 0, selKey = null, GS = null, tmr = null, seq = 0;
-    var owned = {}, money = 500;
+    var owned = {}, money = 1000;
     try { var sv = JSON.parse(localStorage.getItem("gm_game2") || "null"); if (sv) { money = sv.money; owned = sv.owned || {}; } } catch (e) {}
     function save() { try { localStorage.setItem("gm_game2", JSON.stringify({ money: money, owned: owned })); } catch (e) {} }
     var $ = function (id) { return document.getElementById(id); };
@@ -627,8 +626,6 @@
     map.createPane("gOwn"); map.getPane("gOwn").style.zIndex = 455;
     var rFree = L.canvas({ pane: "gFree" }), rOwn = L.canvas({ pane: "gOwn" });
     map.getPane("gOwn").style.filter = "drop-shadow(0 0 5px #00f0ff) drop-shadow(0 0 12px #00f0ff)";
-    // dark street base for game mode (real streets and names stay readable)
-    var dark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 20, attribution: "&copy; OpenStreetMap &copy; CARTO" });
 
     // fixed overall Ghettometer score for every area (all layers on), so game colors do not change with the layer panel
     function buildGS() {
@@ -713,11 +710,11 @@
     $("gameBtn").onclick = function () {
       on = !on; document.body.classList.toggle("game", on);
       if (on) {
-        buildGS(); dark.addTo(map); dark.bringToFront();
+        buildGS();
         if (map.getZoom() < MINZ_G) map.locate({ setView: true, maxZoom: 15 });
         load();
       } else {
-        map.removeLayer(dark); hint(""); $("gSheet").classList.remove("open"); selKey = null;
+        hint(""); $("gSheet").classList.remove("open"); selKey = null;
         Object.keys(blocks).forEach(function (k) { if (blocks[k].gj) map.removeLayer(blocks[k].gj); });
         blocks = {}; count = 0;
       }
