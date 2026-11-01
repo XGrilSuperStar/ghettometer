@@ -111,6 +111,12 @@
   <div class="sub" style="margin-top:6px"><b>Map</b> shows the real places in that layer's color (zoom in). <b>Score</b> counts it in the overall score.</div>
   <div class="btns"><button id="allOn">All score on</button><button id="allOff">All score off</button><button id="noPlaces">Show places</button></div>
   <div id="rows"></div>
+  <h3 style="margin-top:10px">Satellite layers</h3>
+  <div class="sub" style="margin-top:6px">Free NASA and USGS satellite data. Turn on to see it under the dots.</div>
+  <div class="tgs" style="flex-direction:column;align-items:flex-start;gap:6px;margin-top:6px">
+    <label class="tg"><input type="checkbox" id="nightBtn"> Nighttime lights (NASA) - more light = more built-up and active</label>
+    <label class="tg"><input type="checkbox" id="treeBtn"> Tree cover (USGS) - green = more trees</label>
+  </div>
   <h3 style="margin-top:10px">Color key</h3>
   <div id="grad"></div>
   <div class="lg"><span id="lgL">Nicer area</span><span id="lgR">Worse area</span></div>
@@ -299,6 +305,15 @@
   var sat = L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}", {
     maxNativeZoom: 16, maxZoom: 18, attribution: "Imagery: USGS The National Map"
   });
+  var night = L.tileLayer("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png", {
+    maxNativeZoom: 8, maxZoom: 18, opacity: 0.9, attribution: "Nighttime lights: NASA GIBS / VIIRS Black Marble"
+  });
+  var trees = L.tileLayer.wms("https://www.mrlc.gov/geoserver/mrlc_display/wms", {
+    layers: "CONUS_Canopy", format: "image/png", transparent: true, version: "1.1.1", opacity: 0.8, attribution: "Tree cover: USGS / MRLC NLCD"
+  });
+  function toggleOverlay(layer, on) { if (on) { layer.addTo(map); layer.bringToFront(); } else map.removeLayer(layer); }
+  document.getElementById("nightBtn").onchange = function () { toggleOverlay(night, this.checked); if (map.hasLayer(trees)) trees.bringToFront(); };
+  document.getElementById("treeBtn").onchange = function () { toggleOverlay(trees, this.checked); };
   document.getElementById("satBtn").onclick = function () {
     var on = !map.hasLayer(sat);
     if (on) { sat.addTo(map); sat.bringToFront(); } else map.removeLayer(sat);
