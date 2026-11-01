@@ -72,6 +72,34 @@
   .pin { width: 22px; height: 22px; background: var(--acc); border: 3px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 2px 8px rgba(0,0,0,.7); }
   #msg { position: absolute; z-index: 1001; top: calc(84px + var(--adh)); left: 50%; transform: translateX(-50%); background: #fff3cd; color: #333; padding: 8px 14px; border-radius: 8px; display: none; }
   #panel::-webkit-scrollbar { width: 6px; } #panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 3px; }
+  /* ---- GAME LAYER ---- */
+  #gameBtn { background: linear-gradient(180deg,#5cf6ff,#00c8dc) !important; color: #05121a !important; font-weight: 900; border: 0 !important; box-shadow: 0 3px 0 #00707c; }
+  body.game #gameBtn { background: linear-gradient(180deg,#ff7be9,#e010bd) !important; color: #fff !important; box-shadow: 0 3px 0 #7a0a66; }
+  body.game #panel, body.game #meter { display: none !important; }
+  body.game .leaflet-tile-pane { filter: brightness(1.3) contrast(1.15) !important; }
+  #gMoney { position: absolute; z-index: 1000; left: 12px; bottom: 52px; display: none; padding: 8px 14px; font-weight: 800; gap: 8px; align-items: center;
+    background: linear-gradient(180deg,#141c38,#0a0f22); border: 2px solid #2a3a6e; border-radius: 18px; box-shadow: 0 4px 0 #050810, 0 0 14px rgba(0,240,255,.25); }
+  body.game #gMoney { display: flex; }
+  #gMoneyV { font-size: 22px; color: #b6ff4d; text-shadow: 0 0 10px rgba(157,255,0,.7); display: inline-block; }
+  #gMoneyV.bounce { animation: gbounce .6s cubic-bezier(.3,1.9,.4,1); }
+  @keyframes gbounce { 0%{transform:scale(1)} 35%{transform:scale(1.5) rotate(-4deg)} 100%{transform:scale(1) rotate(0)} }
+  .gfloat { position: absolute; z-index: 1300; font-weight: 900; font-size: 24px; pointer-events: none; animation: grise 1s ease-out forwards; text-shadow: 0 0 10px currentColor; }
+  @keyframes grise { 0%{transform:translateY(0) scale(.6);opacity:0} 20%{opacity:1;transform:translateY(-10px) scale(1.3)} 100%{transform:translateY(-80px) scale(1);opacity:0} }
+  #gHint { position: absolute; z-index: 1000; left: 50%; bottom: 56px; transform: translateX(-50%); padding: 8px 14px; font-size: 13px; font-weight: 700; display: none; }
+  .gbtn { border: 0; cursor: pointer; font-family: inherit; font-weight: 900; font-size: 17px; color: #05121a; padding: 14px 22px; border-radius: 16px;
+    background: linear-gradient(180deg,#5cf6ff,#00c8dc); box-shadow: 0 6px 0 #00707c, 0 0 18px rgba(0,240,255,.55); transition: transform .08s, box-shadow .08s; }
+  .gbtn:active { transform: translateY(5px); box-shadow: 0 1px 0 #00707c; }
+  .gbtn.gray { background: linear-gradient(180deg,#4a5679,#2c3552); color: #cfd8f5; box-shadow: 0 6px 0 #141a2c; }
+  .gbtn[disabled] { opacity: .45; pointer-events: none; }
+  #gSheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1100; padding: 16px 16px 16px; display: none;
+    background: linear-gradient(180deg,#121a36,#080c1c); border-top: 3px solid #2a3a6e; border-radius: 26px 26px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.6), 0 -2px 22px rgba(0,240,255,.25); }
+  body.game #gSheet.open { display: block; }
+  #gSheet .gr { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  #gName { font-size: 16px; font-weight: 900; line-height: 1.2; }
+  #gOwner { font-size: 13px; font-weight: 800; padding: 3px 10px; border-radius: 999px; border: 2px solid currentColor; white-space: nowrap; text-shadow: 0 0 8px currentColor; }
+  .gstats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 12px 0; }
+  .gstat { background: #0a0f22; border: 2px solid #202c55; border-radius: 14px; padding: 8px; text-align: center; }
+  .gstat b { display: block; font-size: 18px; } .gstat span { font-size: 11px; color: var(--mut); text-transform: uppercase; letter-spacing: 1px; }
   @media (min-width: 701px) and (max-height: 980px) { #gauge { width: 170px; height: 170px; } #meter { padding: 10px 14px; } #meter h3 { display: none; } }
   @media (max-width: 700px) {
     :root { --adh: 62px; }
@@ -102,6 +130,7 @@
   <select id="mode" title="What the dot colors show"></select>
   <button id="satBtn">Satellite</button>
   <button id="d3Btn">3D</button>
+  <button id="gameBtn">Game</button>
   <button id="layersBtn">Layers</button>
 </div>
 <div id="msg"></div>
@@ -158,6 +187,17 @@
 </div>
 <div id="sitelinks"><a href="about.html">About</a> · <a href="how-it-works.html">How it works</a> · <a href="faq.html">FAQ</a> · <a href="contact.html">Contact</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <span>&copy; 2026 Ghettometer</span></div>
 <div id="zoomhint" class="card"></div>
+<div id="gMoney"><span>💵</span><span id="gMoneyV">500</span></div>
+<div id="gHint" class="card"></div>
+<div id="gSheet">
+  <div class="gr"><div id="gName">Block</div><div id="gOwner">For sale</div></div>
+  <div class="gstats">
+    <div class="gstat"><b id="gScore">--</b><span>Meter</span></div>
+    <div class="gstat"><b id="gPrice">--</b><span>Price</span></div>
+    <div class="gstat"><b id="gRent">--</b><span>Rent / day</span></div>
+  </div>
+  <div class="gr"><button class="gbtn gray" id="gClose" style="flex:0 0 auto">Close</button><button class="gbtn" id="gClaim" style="flex:1">Claim it</button></div>
+</div>
 <!-- Credits: Map tiles & imagery: USGS The National Map (public domain). Mapping library: Leaflet (BSD). 3D view: MapLibre GL, OpenFreeMap / OpenMapTiles, data (c) OpenStreetMap contributors. Home values: Census ACS (median home value). Places: Overture Maps. Census ACS, HUD. -->
 <div id="map"></div>
 <div id="map3d"></div>
@@ -572,6 +612,117 @@
       if (ll) { var c = [], cl = Math.cos(ll.lat * Math.PI / 180); for (var a = 0; a <= 64; a++) { var t = a / 64 * 2 * Math.PI; c.push([ll.lng + 805 * Math.sin(t) / (111320 * cl), ll.lat + 805 * Math.cos(t) / 111320]); } f.push({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [c] } }); }
       m3.getSource("ring").setData({ type: "FeatureCollection", features: f });
     };
+  })();
+  // ---- GAME LAYER: real Census blocks filled with color over the real map; owned blocks glow neon
+  (function () {
+    var BLK = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Tracts_Blocks/MapServer/2/query";
+    var MINZ_G = 14, on = false, blocks = {}, count = 0, selKey = null, GS = null, tmr = null, seq = 0;
+    var owned = {}, money = 500;
+    try { var sv = JSON.parse(localStorage.getItem("gm_game2") || "null"); if (sv) { money = sv.money; owned = sv.owned || {}; } } catch (e) {}
+    function save() { try { localStorage.setItem("gm_game2", JSON.stringify({ money: money, owned: owned })); } catch (e) {} }
+    var $ = function (id) { return document.getElementById(id); };
+    $("gMoneyV").textContent = money;
+
+    map.createPane("gFree"); map.getPane("gFree").style.zIndex = 450;
+    map.createPane("gOwn"); map.getPane("gOwn").style.zIndex = 455;
+    var rFree = L.canvas({ pane: "gFree" }), rOwn = L.canvas({ pane: "gOwn" });
+    map.getPane("gOwn").style.filter = "drop-shadow(0 0 5px #00f0ff) drop-shadow(0 0 12px #00f0ff)";
+    // dark street base for game mode (real streets and names stay readable)
+    var dark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", { subdomains: "abcd", maxZoom: 20, attribution: "&copy; OpenStreetMap &copy; CARTO" });
+
+    // fixed overall Ghettometer score for every area (all layers on), so game colors do not change with the layer panel
+    function buildGS() {
+      if (GS) return; GS = new Uint8Array(N);
+      var means = new Float64Array(N), i, k;
+      for (i = 0; i < N; i++) { var s = 0; for (k = 0; k < KEYS.length; k++) s += D[i][3 + k]; means[i] = s / KEYS.length; }
+      var order = []; for (i = 0; i < N; i++) order.push(i);
+      order.sort(function (a, b) { return means[a] - means[b]; });
+      for (i = 0; i < N; i++) GS[order[i]] = Math.round(i / Math.max(N - 1, 1) * 100);
+    }
+    function priceOf(b) { var hv = b.idx >= 0 ? D[b.idx][26] : 0; return Math.max(20, Math.round(hv ? hv / 1000 : 150)); }
+    function rentOf(b) { return Math.max(1, Math.round(priceOf(b) * 0.015 * 10) / 10); }
+
+    function draw(key) {
+      var b = blocks[key]; if (!b) return;
+      if (b.gj) map.removeLayer(b.gj);
+      var mine = !!owned[key], col = mine ? "#00f0ff" : COLORS[b.score];
+      var st = { color: col, weight: mine ? 2.5 : 1, opacity: mine ? 1 : 0.55, fillColor: col, fillOpacity: mine ? 0.5 : 0.3, lineJoin: "round" };
+      var gj = L.geoJSON(b.f, { pane: mine ? "gOwn" : "gFree", renderer: mine ? rOwn : rFree, style: function () { return st; } });
+      gj.on("click", function (e) { L.DomEvent.stopPropagation(e); select(key); });
+      gj.addTo(map); b.gj = gj;
+    }
+    function addBlock(f) {
+      var p = f.properties || {}, key = p.GEOID; if (!key || blocks[key]) return;
+      var idx = nearest(+p.INTPTLAT, +p.INTPTLON);
+      blocks[key] = { f: f, idx: idx, score: idx >= 0 ? GS[idx] : 50, gj: null }; count++;
+      draw(key);
+    }
+    function clearFree() {
+      Object.keys(blocks).forEach(function (k) { if (!owned[k]) { if (blocks[k].gj) map.removeLayer(blocks[k].gj); delete blocks[k]; count--; } });
+    }
+    function hint(t) { var h = $("gHint"); h.textContent = t; h.style.display = t ? "block" : "none"; }
+
+    function load() {
+      if (!on) return;
+      if (map.getZoom() < MINZ_G) { hint("Zoom in to see the blocks"); return; }
+      hint("");
+      if (count > 6000) clearFree();
+      var b = map.getBounds(), my = ++seq;
+      var q = BLK + "?where=1%3D1&geometry=" + [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(",") +
+        "&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=GEOID,POP100,INTPTLAT,INTPTLON" +
+        "&returnGeometry=true&outSR=4326&geometryPrecision=5&f=geojson&resultRecordCount=3000";
+      fetch(q).then(function (r) { return r.json(); }).then(function (j) {
+        if (!on || my !== seq || !j || !j.features) return;
+        j.features.forEach(addBlock);
+      }).catch(function () { hint("Could not load blocks. Try again."); });
+    }
+    function later() { clearTimeout(tmr); tmr = setTimeout(load, 350); }
+    map.on("moveend", later);
+
+    function select(key) {
+      var prev = selKey; selKey = key;
+      if (prev && blocks[prev]) draw(prev);
+      var b = blocks[key]; if (!b) return;
+      var mine = !!owned[key], o = $("gOwner");
+      $("gName").textContent = (b.idx >= 0 ? nm(b.idx).replace("Census Tract", "Tract").split(";").slice(0, 2).join(" · ") : "Block") + "  ·  Block " + key.slice(-4);
+      o.textContent = mine ? "You" : "For sale"; o.style.color = mine ? "#00f0ff" : "#9aa3d6";
+      $("gScore").textContent = b.score; $("gPrice").textContent = "$" + priceOf(b); $("gRent").textContent = "$" + rentOf(b);
+      var c = $("gClaim");
+      if (mine) { c.textContent = "Yours!"; c.disabled = true; }
+      else if (money < priceOf(b)) { c.textContent = "Need $" + (priceOf(b) - money) + " more"; c.disabled = true; }
+      else { c.textContent = "Claim it  $" + priceOf(b); c.disabled = false; }
+      $("gSheet").classList.add("open");
+    }
+    $("gClose").onclick = function () { $("gSheet").classList.remove("open"); selKey = null; };
+
+    function setMoney(v, delta, at) {
+      money = v; $("gMoneyV").textContent = money; save();
+      var m = $("gMoneyV"); m.classList.remove("bounce"); void m.offsetWidth; m.classList.add("bounce");
+      if (delta) {
+        var f = document.createElement("div"); f.className = "gfloat"; f.textContent = (delta > 0 ? "+" : "-") + "$" + Math.abs(delta);
+        f.style.color = delta > 0 ? "#b6ff4d" : "#ff6b8a"; f.style.left = ((at && at.x) || innerWidth / 2) + "px"; f.style.top = ((at && at.y) || innerHeight / 2) + "px";
+        document.body.appendChild(f); setTimeout(function () { f.remove(); }, 1000);
+      }
+    }
+    $("gClaim").onclick = function () {
+      var b = blocks[selKey]; if (!b || owned[selKey] || money < priceOf(b)) return;
+      var cost = priceOf(b), key = selKey, at = map.latLngToContainerPoint(b.gj.getBounds().getCenter());
+      owned[key] = 1; setMoney(money - cost, -cost, at); draw(key); select(key);
+    };
+
+    $("gameBtn").onclick = function () {
+      on = !on; document.body.classList.toggle("game", on);
+      if (on) {
+        buildGS(); dark.addTo(map); dark.bringToFront();
+        if (map.getZoom() < MINZ_G) map.locate({ setView: true, maxZoom: 15 });
+        load();
+      } else {
+        map.removeLayer(dark); hint(""); $("gSheet").classList.remove("open"); selKey = null;
+        Object.keys(blocks).forEach(function (k) { if (blocks[k].gj) map.removeLayer(blocks[k].gj); });
+        blocks = {}; count = 0;
+      }
+    };
+    map.on("locationerror", function () { if (on) hint("Zoom in on your neighborhood to see blocks"); });
   })();
   recompute();
 })();
