@@ -596,7 +596,7 @@
       if (!on3) return oldSat.call(this);
       styleSat = !styleSat; m3.setLayoutProperty("satl", "visibility", styleSat ? "visible" : "none"); this.textContent = styleSat ? "Map" : "Satellite";
     };
-    btn.onclick = function () {
+    function go3() {
       on3 = !on3;
       if (on3) {
         document.getElementById("map").style.visibility = "hidden"; el3.style.display = "block"; btn.textContent = "2D";
@@ -606,21 +606,56 @@
         var c3 = m3.getCenter(); map.setView([c3.lat, c3.lng], Math.min(Math.max(Math.round(m3.getZoom()), 5), 18));
         document.getElementById("map").style.visibility = ""; el3.style.display = "none"; btn.textContent = "3D"; if (window.__gameLoad) setTimeout(window.__gameLoad, 300);
       }
+    }
+    btn.onclick = function () {
+      // zoomed out on the whole US there is nothing to show in 3D, so go to the player's area first
+      if (!on3 && map.getZoom() < 11) {
+        var mm = document.getElementById("msg");
+        var tell = function () { mm.textContent = "Zoom in on your area first, then tap 3D."; mm.style.display = "block"; setTimeout(function () { mm.style.display = "none"; }, 4500); };
+        if (navigator.geolocation) navigator.geolocation.getCurrentPosition(function (pos) { map.setView([pos.coords.latitude, pos.coords.longitude], 16, { animate: false }); go3(); }, tell, { timeout: 8000 });
+        else tell();
+        return;
+      }
+      go3();
     };
     // ---- game look in 3D: Ingress-dark base, game blocks on the ground, owned blocks rise and glow
     var orig = {}, darkOn = false;
     function setP(id, prop, val) { try { var k = id + "|" + prop; if (!(k in orig)) orig[k] = m3.getPaintProperty(id, prop); m3.setPaintProperty(id, prop, val); } catch (e) {} }
     var SKIP = { sc: 1, "ring-f": 1, "ring-l": 1, pl: 1, "bld-line": 1, satl: 1, "gb-fill": 1, "gb-line": 1, "gb-glow": 1, "gb-own3d": 1 };
+    var origL = {};
+    function setL(id, prop, val) { try { var k = id + "|" + prop; if (!(k in origL)) origL[k] = m3.getLayoutProperty(id, prop); m3.setLayoutProperty(id, prop, val); } catch (e) {} }
+    var KEEP_LABELS = { label_city: 1, label_city_capital: 1, label_town: 1, label_village: 1, label_state: 1, "highway-name-major": 1 };
     function darken(dk) {
-      if (!dk) { Object.keys(orig).forEach(function (k) { var i = k.indexOf("|"); try { m3.setPaintProperty(k.slice(0, i), k.slice(i + 1), orig[k]); } catch (e) {} }); orig = {}; return; }
+      if (!dk) {
+        Object.keys(orig).forEach(function (k) { var i = k.indexOf("|"); try { m3.setPaintProperty(k.slice(0, i), k.slice(i + 1), orig[k]); } catch (e) {} }); orig = {};
+        Object.keys(origL).forEach(function (k) { var i = k.indexOf("|"); try { m3.setLayoutProperty(k.slice(0, i), k.slice(i + 1), origL[k]); } catch (e) {} }); origL = {};
+        return;
+      }
+      // simple game-map look: few colors, simple roads, almost no labels, see-through buildings
       m3.getStyle().layers.forEach(function (l) {
         if (SKIP[l.id]) return;
-        var id = l.id, t = l.type, water = /water/.test(id);
+        var id = l.id, t = l.type;
         if (t === "background") setP(id, "background-color", "#05070d");
-        else if (t === "fill") setP(id, "fill-color", water ? "#050a1a" : "#0b1022");
-        else if (t === "line") setP(id, "line-color", water ? "#0a1633" : "#3b4a7a");
-        else if (t === "fill-extrusion") { setP(id, "fill-extrusion-color", "#27315c"); setP(id, "fill-extrusion-opacity", 0.9); }
-        else if (t === "symbol") { setP(id, "text-color", "#aab6e6"); setP(id, "text-halo-color", "#05070d"); }
+        else if (id === "natural_earth") setL(id, "visibility", "none");
+        else if (t === "fill" && id === "building") setP(id, "fill-color", "#18204a");
+        else if (t === "fill" && /^water$/.test(id)) setP(id, "fill-color", "#0a2a6b");
+        else if (t === "fill" && /^(park|landcover_wood|landcover_grass|landuse_pitch)$/.test(id)) setP(id, "fill-color", "#0b2f2c");
+        else if (t === "fill") setP(id, "fill-color", "#0a0f22");
+        else if (t === "line" && /waterway/.test(id)) setP(id, "line-color", "#0a2a6b");
+        else if (t === "line" && /rail|boundary|aeroway/.test(id)) setL(id, "visibility", "none");
+        else if (t === "line" && /_casing$/.test(id)) setP(id, "line-color", "#05070d");
+        else if (t === "line" && id === "park_outline") setL(id, "visibility", "none");
+        else if (t === "line") setP(id, "line-color", "#6b7dc4");
+        else if (t === "fill-extrusion") {
+          setP(id, "fill-extrusion-color", ["interpolate", ["linear"], ["get", "render_height"], 0, "#2a3a8a", 40, "#4a63c9", 150, "#7e95ff"]);
+          setP(id, "fill-extrusion-opacity", 0.62);
+          setP(id, "fill-extrusion-height", ["*", 1.8, ["get", "render_height"]]);
+          setP(id, "fill-extrusion-base", ["*", 1.8, ["get", "render_min_height"]]);
+        }
+        else if (t === "symbol") {
+          if (KEEP_LABELS[id]) { setP(id, "text-color", "#b8c4ff"); setP(id, "text-halo-color", "#05070d"); }
+          else setL(id, "visibility", "none");
+        }
       });
     }
     function gameApply() {
@@ -630,8 +665,8 @@
       if (!m3.getSource("gb")) {
         m3.addSource("gb", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
         var before = m3.getLayer("building-3d") ? "building-3d" : undefined;
-        m3.addLayer({ id: "gb-fill", type: "fill", source: "gb", filter: ["==", ["get", "own"], 0], paint: { "fill-color": ["get", "col"], "fill-opacity": 0.28 } }, before);
-        m3.addLayer({ id: "gb-line", type: "line", source: "gb", paint: { "line-color": ["get", "col"], "line-width": ["case", ["==", ["get", "own"], 1], 2, 1], "line-opacity": 0.7 } }, before);
+        m3.addLayer({ id: "gb-fill", type: "fill", source: "gb", filter: ["==", ["get", "own"], 0], paint: { "fill-color": ["get", "col"], "fill-opacity": 0.22 } }, before);
+        m3.addLayer({ id: "gb-line", type: "line", source: "gb", paint: { "line-color": ["get", "col"], "line-width": ["case", ["==", ["get", "own"], 1], 2, 1.4], "line-opacity": 0.9 } }, before);
         m3.addLayer({ id: "gb-glow", type: "line", source: "gb", filter: ["==", ["get", "own"], 1], paint: { "line-color": "#00f0ff", "line-width": 12, "line-blur": 10, "line-opacity": 0.9 } }, before);
         m3.addLayer({ id: "gb-own3d", type: "fill-extrusion", source: "gb", filter: ["==", ["get", "own"], 1], paint: { "fill-extrusion-color": "#00f0ff", "fill-extrusion-height": 30, "fill-extrusion-base": 0, "fill-extrusion-opacity": 0.6 } });
         ["gb-fill", "gb-own3d"].forEach(function (id) {
@@ -642,7 +677,7 @@
       }
       ["gb-fill", "gb-line", "gb-glow", "gb-own3d"].forEach(function (id) { m3.setLayoutProperty(id, "visibility", on ? "visible" : "none"); });
       var feats = [];
-      if (on) { var bl = G.blocks(), ow = G.owned(); Object.keys(bl).forEach(function (k) { var b = bl[k], mine = !!ow[k]; feats.push({ type: "Feature", properties: { key: k, own: mine ? 1 : 0, col: mine ? "#00f0ff" : COLORS[b.score] }, geometry: b.f.geometry }); }); }
+      if (on) { var bl = G.blocks(), ow = G.owned(); Object.keys(bl).forEach(function (k) { var b = bl[k], mine = !!ow[k]; feats.push({ type: "Feature", properties: { key: k, own: mine ? 1 : 0, col: mine ? "#00f0ff" : G.colorOf(b.score) }, geometry: b.f.geometry }); }); }
       m3.getSource("gb").setData({ type: "FeatureCollection", features: feats });
       if (on !== darkOn) { darken(on); darkOn = on; }
     }
@@ -680,14 +715,18 @@
       order.sort(function (a, b) { return means[a] - means[b]; });
       for (i = 0; i < N; i++) GS[order[i]] = Math.round(i / Math.max(N - 1, 1) * 100);
     }
+    var GCOL = [];
+    (function () { var S = [[25, 240, 200], [122, 92, 255], [255, 46, 147]];
+      for (var v = 0; v <= 100; v++) { var t = v / 50, i = Math.min(Math.floor(t), 1), f = t - i, a = S[i], c = S[i + 1];
+        GCOL.push("rgb(" + Math.round(a[0] + (c[0] - a[0]) * f) + "," + Math.round(a[1] + (c[1] - a[1]) * f) + "," + Math.round(a[2] + (c[2] - a[2]) * f) + ")"); } })();
     function priceOf(b) { var hv = b.idx >= 0 ? D[b.idx][26] : 0; return Math.max(20, Math.round(hv ? hv / 1000 : 150)); }
     function rentOf(b) { return Math.max(1, Math.round(priceOf(b) * 0.015 * 10) / 10); }
 
     function draw(key) {
       var b = blocks[key]; if (!b) return;
       if (b.gj) map.removeLayer(b.gj);
-      var mine = !!owned[key], col = mine ? "#00f0ff" : COLORS[b.score];
-      var st = { color: col, weight: mine ? 2.5 : 1, opacity: mine ? 1 : 0.55, fillColor: col, fillOpacity: mine ? 0.5 : 0.3, lineJoin: "round" };
+      var mine = !!owned[key], col = mine ? "#00f0ff" : GCOL[b.score];
+      var st = { color: col, weight: mine ? 2.5 : 1.2, opacity: mine ? 1 : 0.9, fillColor: col, fillOpacity: mine ? 0.5 : 0.22, lineJoin: "round" };
       var gj = L.geoJSON(b.f, { pane: mine ? "gOwn" : "gFree", renderer: mine ? rOwn : rFree, style: function () { return st; } });
       gj.on("click", function (e) { L.DomEvent.stopPropagation(e); select(key); });
       gj.addTo(map); b.gj = gj; sync3();
@@ -703,7 +742,7 @@
     }
     var s3 = null;
     function sync3() { clearTimeout(s3); s3 = setTimeout(function () { if (window.__game3d) window.__game3d(); }, 120); }
-    window.__gameAPI = { on: function () { return on; }, blocks: function () { return blocks; }, owned: function () { return owned; }, select: function (k) { select(k); } };
+    window.__gameAPI = { colorOf: function (s) { return GCOL[s]; }, on: function () { return on; }, blocks: function () { return blocks; }, owned: function () { return owned; }, select: function (k) { select(k); } };
     function hint(t) { var h = $("gHint"); h.textContent = t; h.style.display = t ? "block" : "none"; }
 
     function load() {
